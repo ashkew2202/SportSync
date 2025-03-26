@@ -1,0 +1,57 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>My Project</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            margin: 0;
+            padding: 0;
+        }
+        nav {
+            background: linear-gradient(45deg, #1E90FF, #87CEFA); /* Gradient blue */
+            border-bottom: 3px solid #32CD32; /* Greenish */
+            overflow: hidden;
+        }
+        nav li {
+            list-style-type: none;
+            float: left;
+        }
+        nav li a {
+            display: block;
+            color: white;
+            text-align: center;
+            padding: 14px 16px;
+            text-decoration: none;
+            position: relative;
+        }
+        nav li a:hover {
+            background-color: #111;
+        }
+        .content {
+            padding: 20px;
+        }
+    </style>
+</head>
+<body>
+    <nav>
+        <li><a href="{% url 'home' %}">Home</a></li>
+        <li><a href="#">About</a></li>
+        <li><a href="#">Contact</a></li>
+        {% if user.is_authenticated %}
+            <li><a href="#">Profile</a></li>
+            <li><a href="{% url 'account_logout' %}">Log Out</a></li>
+        {% else %}
+            <li><a href="{% url 'account_login' %}">Log In</a></li>
+            <li><a href="{% url 'account_signup' %}">Sign Up</a></li>
+        {% endif %}
+    </nav>
+    <div class="content">
+        {% block content %}
+        
+        {% endblock %}
+    </div>
+</body>
+</html>

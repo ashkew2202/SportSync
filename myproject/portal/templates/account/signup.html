@@ -1,0 +1,56 @@
+{% extends "base.html" %}
+{% load socialaccount %}
+{% block content %}
+    <style>
+        .signup-container {
+            max-width: 400px;
+            margin: 0 auto;
+            padding: 20px;
+            border: 1px solid #ccc;
+            border-radius: 10px;
+            box-shadow: 0 0 10px rgba(0, 0, 0, 0.1);
+        }
+        .signup-container h2 {
+            text-align: center;
+            margin-bottom: 20px;
+        }
+        .signup-container form {
+            display: flex;
+            flex-direction: column;
+        }
+        .signup-container button {
+            margin-top: 10px;
+            padding: 10px;
+            background-color: #4CAF50;
+            color: white;
+            border: none;
+            border-radius: 5px;
+            cursor: pointer;
+        }
+        .signup-container button:hover {
+            background-color: #45a049;
+        }
+        .google-login {
+            margin-top: 20px;
+            text-align: center;
+        }
+        .google-login a {
+            color: #4285F4;
+            text-decoration: none;
+            font-weight: bold;
+        }
+    </style>
+
+    <div class="signup-container">
+        <h2>Sign Up</h2>
+        <form method="post">
+            {% csrf_token %}
+            {{ form.as_p }}
+            <button type="submit">Sign Up</button>
+        </form>
+        <div class="google-login">
+            <p>Or</p>
+            <a href="{% provider_login_url 'google' %}">Sign Up with Google</a>
+        </div>
+    </div>
+{% endblock %}

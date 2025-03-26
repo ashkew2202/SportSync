@@ -1,0 +1,60 @@
+{% extends "base.html" %}
+
+{% block content %}
+<div class="container">
+    <div class="row">
+        <style>
+            .welcome-header {
+                font-family: 'Arial', sans-serif;
+                background-color: #f8f9fa;
+                padding: 20px;
+                border-radius: 5px;
+                background-color: black;
+                font-family: 'Verdana', sans-serif;
+                color: white;
+                margin: 0 auto;
+                text-align: center;
+            }
+        </style>
+        <div class="welcome-header">
+            <h1>Welcome to SportSync</h1>
+        </div>
+    </div>
+</div>
+
+<script>
+    document.addEventListener('DOMContentLoaded', function() {
+        // Fetch and display latest news
+        fetch('/api/news')
+            .then(response => response.json())
+            .then(data => {
+                const newsList = document.getElementById('news-list');
+                newsList.innerHTML = '';
+                data.forEach(news => {
+                    const li = document.createElement('li');
+                    li.textContent = news.title;
+                    newsList.appendChild(li);
+                });
+            });
+
+        // Fetch and display upcoming events
+        fetch('/api/events')
+            .then(response => response.json())
+            .then(data => {
+                const eventsList = document.getElementById('events-list');
+                eventsList.innerHTML = '';
+                data.forEach(event => {
+                    const li = document.createElement('li');
+                    li.textContent = event.name;
+                    eventsList.appendChild(li);
+                });
+            });
+
+        // Initialize and display map
+        const map = L.map('map').setView([51.505, -0.09], 13);
+        L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+            attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors'
+        }).addTo(map);
+    });
+</script></div></ul></div>
+{% endblock %}
