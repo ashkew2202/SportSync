@@ -6,7 +6,8 @@ from django.urls.conf import include
 urlpatterns=[
         path('accounts/',include('allauth.urls')),
         path('',views.home,name='home'),
-        path('prelogin/',views.login,name='login'),
-        path('candidate/',views.candidate,name='candidate'),
-        path('candidateRedirect/',views.candidateRedirect,name='candidate_redirect'),
+        path('registration/',views.register,name='register'),
+        path('organizer_login/',views.ologin,name='organizer_login'),
+        path('prelogin/',views.prelogin,name='prelogin'),
+        path('profile/',views.profile,name='account_profile'),
 ]

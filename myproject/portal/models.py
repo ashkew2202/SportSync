@@ -4,6 +4,14 @@ import random
 import string
 from django.db.models import Count
 from django.core.exceptions import ValidationError
+from django.contrib.auth.models import AnonymousUser
+
+class BannedParticipants(models.Model):
+    participant = models.ForeignKey('Participant', on_delete=models.CASCADE)
+    event = models.ForeignKey('Event', on_delete=models.CASCADE)
+
+    def __str__(self):
+        return f"{self.participant} banned from {self.event}"
 
 class Participant(models.Model):
     name = models.CharField(max_length=100)
@@ -20,9 +28,20 @@ class Participant(models.Model):
 
     def save(self, *args, **kwargs):
         self.name = self.name.upper()
-        user = get_user(kwargs.get('request'))
-        self.email = user.email if user else self.email
+        request = kwargs.get('request')  # Get the request object
+        if request and hasattr(request, 'user') and not isinstance(request.user, AnonymousUser):
+            self.email = request.user.email  # Use the email from the logged-in user
         super(Participant, self).save(*args, **kwargs)
+
+    def banPlayer(self, event):
+        teams = Team.objects.filter(event=event, college=self.college)
+        for team in teams:
+            team.removePlayer(self)
+        banned = BannedParticipants(participant=self, event=event)
+        banned.save()
+        print(f"Banned {self} from {event}")
+        return self
+        
 
     def __str__(self):
         return self.name
@@ -47,6 +66,11 @@ class Team(models.Model):
             if not all(participant.college == college for participant in self.participants.all()):
                 raise ValidationError("All participants must be from the same college.")
     max_size = models.IntegerField()
+
+    def removePlayer(self, participant):
+        self.participants.remove(participant)
+        print(f"Removed {participant} from {self}")
+        return self
 
     def __str__(self):
         return f"Team from {self.college} with max size {self.max_size}"

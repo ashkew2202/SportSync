@@ -82,7 +82,7 @@ ROOT_URLCONF = 'myproject.urls'
 TEMPLATES = [
     {
         'BACKEND': 'django.template.backends.django.DjangoTemplates',
-        'DIRS': ['D:/python workspace/sutt_task/SportSync/myproject/portal/templates'],
+        'DIRS': [os.path.join(BASE_DIR, 'portal/templates')],
         'APP_DIRS': True,
         'OPTIONS': {
             'context_processors': [
@@ -149,4 +149,4 @@ STATIC_URL = 'static/'
 # https://docs.djangoproject.com/en/5.1/ref/settings/#default-auto-field
 
 DEFAULT_AUTO_FIELD = 'django.db.models.BigAutoField'
-ACCOUNT_FORMS = {'signup': 'portal.forms.MyCustomSignupForm'}
+ACCOUNT_SIGNUP_REDIRECT_URL = '/registration/'

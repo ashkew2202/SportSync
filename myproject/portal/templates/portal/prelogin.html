@@ -1,0 +1,24 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Login Options</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0-alpha1/dist/css/bootstrap.min.css" rel="stylesheet">
+</head>
+<body>
+    <div class="container text-center mt-5">
+        <h1 class="mb-4">Welcome to SportSync</h1>
+        <p class="mb-4">Please select your login type:</p>
+        <div class="row justify-content-center">
+            <div class="col-md-4">
+                <a href="{% url 'organizer_login' %}" class="btn btn-primary btn-lg w-100 mb-3">Login as Organizer</a>
+            </div>
+            <div class="col-md-4">
+                <a href="{% url 'account_login' %}" class="btn btn-success btn-lg w-100">Login as Participant</a>
+            </div>
+        </div>
+    </div>
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0-alpha1/dist/js/bootstrap.bundle.min.js"></script>
+</body>
+</html>

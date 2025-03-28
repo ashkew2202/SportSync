@@ -1,15 +1,22 @@
-from allauth.account.forms import SignupForm
 from django import forms
-class MyCustomSignupForm(SignupForm):
-    def __init__(self, *args, **kwargs):
-        super(MyCustomSignupForm, self).__init__(*args, **kwargs)
-        self.fields['option'] = forms.ChoiceField(
-            choices=[('candidate', 'Candidate'), ('organizer', 'Organizer')],
-            widget=forms.RadioSelect,
-            label="Select your role"
-        )
-    def save(self, request):
-        user = super(MyCustomSignupForm, self).save(request)
-        user.option = self.cleaned_data['option']
-        ...
-        
+from .models import Participant, Organizer
+
+class RegistrationForm(forms.ModelForm):
+    name = forms.CharField(max_length=100)
+    email = forms.EmailField()
+    gender = forms.ChoiceField(choices=[('M', 'Male'), ('F', 'Female'), ('O', 'Other')])
+    dob = forms.DateField(widget=forms.DateInput(attrs={'type': 'date'}))  # Add a date picker widget
+    phone = forms.CharField(max_length=10)
+    college = forms.CharField(max_length=100)
+
+    class Meta:
+        model = Participant
+        fields = '__all__'
+
+class OrganizerLoginForm(forms.Form):
+    username = forms.CharField(max_length=150, widget=forms.TextInput(attrs={'placeholder': 'Username'}))
+    password = forms.CharField(widget=forms.PasswordInput(attrs={'placeholder': 'Password'}))
+
+    class Meta:
+        model = Organizer
+        fields = ['name', 'password']
