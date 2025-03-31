@@ -1,4 +1,4 @@
-{% extends "base.html" %}
+{% extends "participant_base.html" %}
 
 {% block content %}
 <div class="container mt-5">
@@ -8,7 +8,7 @@
             <h5 class="mb-0">{{ participant.name }}</h5>
         </div>
         <div class="card-body">
-            <p class="card-text"><strong>Email:</strong> {{ participant.email }}</p>
+            <p class="card-text"><strong>Email:</strong> {{ user.email }}</p>
             <p class="card-text"><strong>Gender:</strong> {{ participant.gender }}</p>
             <p class="card-text"><strong>Date of Birth:</strong> {{ participant.dob }}</p>
             <p class="card-text"><strong>College:</strong> {{ participant.college }}</p>

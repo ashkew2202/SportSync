@@ -1,12 +1,11 @@
-from django.shortcuts import render
+from django.shortcuts import render, redirect
 from . import decorators
-from allauth.account.views import LoginView
-from django.shortcuts import redirect
 from django.contrib.auth.models import User
-from django.contrib.auth import login as auth_login
-from django.contrib.auth.backends import ModelBackend
+from django.contrib.auth import login as auth_login, login
 from .forms import RegistrationForm, OrganizerLoginForm
-from .models import Participant, Organizer
+from .models import Participant, Organizer, Match, Event, Team, BannedParticipants, College
+from django.contrib.auth.decorators import login_required, user_passes_test
+from .forms import MatchForm
 
 # Create your views here.
 def base(request):
@@ -19,13 +18,19 @@ def home(request):
 def candidate_entry(request):
     return render(request, 'portal/candidate.html')
 
-@decorators.organizer_required
+@login_required(login_url='organizer_login')
 def organizer_entry(request):
-    return render(request, 'portal/organizer.html')
+    organizer = request.user
+    matches = Match.objects.filter(organizer=organizer)
+    context = {
+        'matches': matches,
+    } 
+    return render(request, 'portal/organizer.html', context)
 
 def login(request):
     return render(request, 'portal/prelogin.html')
 
+@login_required(login_url='account_login')
 def register(request):
     if request.method == 'POST':
         form = RegistrationForm(request.POST)
@@ -55,10 +60,10 @@ def ologin(request):
             try:
                 organizer = Organizer.objects.get(name=username)
                 if organizer.password == password:  # Verify the password
-                    # Start a session manually
-                    request.session['organizer_id'] = organizer.id
-                    request.session['organizer_name'] = organizer.name
-                    return redirect('home')
+                    # Specify the backend explicitly
+                    organizer.backend = 'django.contrib.auth.backends.OrganizerBackend'
+                    auth_login(request, organizer, backend='portal.backends.OrganizerBackend')
+                    return redirect('organizer_dashboard')
                 else:
                     return render(request, 'portal/ologin.html', {'error': 'Invalid username or password'})
             except Organizer.DoesNotExist:
@@ -74,8 +79,65 @@ def profile(request):
     if request.user.is_authenticated:
         try:
             participant = Participant.objects.filter(email=request.user.email)
-            return render(request, 'account/profile.html', {'participant': participant[0]})
+            return render(request, 'account/profile.html', {'participant': participant[0],'user':request.user})
         except Participant.DoesNotExist:
             return render(request, 'account/profile.html', {'error': 'Participant details not found'})
     else:
-        return redirect('login')
+        return redirect('account_login')
+
+def match_details(request, match_id):
+    match = Match.objects.get(id=match_id)
+    teams = Team.objects.filter(match=match)
+    context = {
+        'match': match,
+        'teams': teams,
+    }
+    return render(request, 'portal/matchDetails.html', context)
+
+def update_match(request, match_id):
+    match = Match.objects.get(id=match_id)
+    if request.method == 'POST':
+        match.date = request.POST.get('date')
+        match.venue = request.POST.get('location')
+        match.save()
+        return redirect('match_details', match_id=match.id)
+    return render(request, 'portal/updateMatch.html', {'match': match})
+
+def delete_match(request, match_id):
+    match = Match.objects.get(id=match_id)
+    if request.method == 'POST':
+        match.delete()
+        return redirect('organizer_dashboard')
+    return render(request, 'portal/deleteMatch.html', {'match': match})
+
+def addMatch(request):
+    if request.method == 'POST':
+        form = MatchForm(request.POST)
+        if form.is_valid():
+            match = form.save(commit=False)
+            match.organizer = request.user
+            match.save()
+            return redirect('organizer_dashboard')
+    else:
+        form = MatchForm()
+
+    return render(request, 'portal/addMatch.html', {'form': form})
+
+@login_required(login_url='account_login')
+def participant_entry(request):
+    user = request.user
+    try:
+        participant = Participant.objects.get(email=user.email)
+    except Participant.DoesNotExist:
+        participant = None
+    if participant:
+        teams = Team.objects.filter(participants=participant).distinct()
+        matches = Match.objects.filter(teams__in=teams).distinct()
+        context = {
+            'participant': participant,
+            'teams': teams,
+            'matches': matches,
+        }
+        return render(request, 'portal/participant.html', context)
+    else:
+        return render(request, 'portal/participant.html', {'error': 'Participant details not found'})

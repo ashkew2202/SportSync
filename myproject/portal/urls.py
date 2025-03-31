@@ -10,4 +10,10 @@ urlpatterns=[
         path('organizer_login/',views.ologin,name='organizer_login'),
         path('prelogin/',views.prelogin,name='prelogin'),
         path('profile/',views.profile,name='account_profile'),
+        path('organizer_dashboard/',views.organizer_entry,name='organizer_dashboard'),
+        path('match_details/<int:match_id>/',views.match_details,name='match_details'),
+        path('update_details/<int:match_id>/',views.update_match,name='update_details'),
+        path('delete_match/<int:match_id>/',views.delete_match,name='delete_match'),
+        path('add_match/',views.addMatch,name='add_match'),
+        path('participant_dashboard/',views.participant_entry,name='participant_dashboard'),
 ]
