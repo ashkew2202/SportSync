@@ -22,4 +22,5 @@ urlpatterns=[
         path('events/',views.event_view,name='events'),
         path('register_participant/<int:event_id>',views.register_participant,name='register_participant'),
         path('banParticipant/<int:participant_id>/<int:team_id>/',views.ban_participant,name='ban_participant'),
+        path('addTeam/<int:match_id>/',views.addTeam,name='add_team'),
 ]

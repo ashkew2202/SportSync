@@ -25,17 +25,17 @@ class OrganizerLoginForm(forms.Form):
         fields = ['name', 'password']
 
 class MatchForm(forms.ModelForm):
-    match_date = forms.DateField(
+    date = forms.DateField(
         widget=forms.DateInput(attrs={'type': 'date', 'class': 'form-control'})
     )
-    match_time = forms.TimeField(
+    time = forms.TimeField(
         widget=forms.TimeInput(attrs={'type': 'time', 'class': 'form-control'})
     )
     venue = forms.CharField(
         max_length=200,
         widget=forms.TextInput(attrs={'class': 'form-control', 'placeholder': 'Venue'})
     )
-    team = forms.ModelMultipleChoiceField(
+    teams = forms.ModelMultipleChoiceField(
         queryset=Team.objects.all(),
         widget=forms.SelectMultiple(attrs={'class': 'form-control'})
     )
@@ -46,7 +46,7 @@ class MatchForm(forms.ModelForm):
     
     class Meta:
         model = Match
-        fields = ['match_date', 'match_time', 'venue', 'team', 'event']
+        fields = ['date', 'time', 'venue', 'teams', 'event']
 
 class EventForm(forms.ModelForm):
     SPORT_CHOICES= [
@@ -88,3 +88,17 @@ class EventForm(forms.ModelForm):
     class Meta:
         model = Event
         fields = ['name_of_sports', 'gender', 'scoring_system','max_size','min_size']
+
+class TeamForm(forms.ModelForm):
+    event = forms.ModelChoiceField(
+        queryset=Event.objects.all(),
+        widget=forms.Select(attrs={'class': 'form-control'})
+    )
+    teams = forms.ModelChoiceField(
+        queryset=Team.objects.filter(),
+        widget=forms.Select(attrs={'class': 'form-control'})
+    )
+
+    class Meta:
+        model = Team
+        fields = ['event', 'teams']

@@ -156,15 +156,6 @@ class Team(models.Model):
 
     def __str__(self):
         return f"Team from {self.college} with max size {self.max_size}"
-    
-class Registration(models.Model):
-    team = models.ForeignKey(Team, on_delete=models.CASCADE)
-    event = models.ForeignKey(Event, on_delete=models.CASCADE)
-
-class Score(models.Model):
-    team=models.ForeignKey(Team, on_delete=models.CASCADE)
-    round_number=models.IntegerField()
-    score_value=models.CharField(max_length=10)
 
 class Match(models.Model):
     date = models.DateField()
@@ -172,7 +163,13 @@ class Match(models.Model):
     venue = models.CharField(max_length=100)
     organizer = models.ForeignKey(Organizer, on_delete=models.CASCADE)
     teams = models.ManyToManyField(Team)
-    event=models.ForeignKey(Event, on_delete=models.CASCADE)
+    event = models.ForeignKey(Event, on_delete=models.CASCADE)
+
+    def addTeam(self, team):
+        if team.event != self.event:
+            raise ValidationError("All teams in a match must belong to the same event.")
+        self.teams.add(team)
+        print(f"Added {team} to match at {self.venue}")
 
     def checkTeam(self, team):
         if team.participants.count() < team.event.min_size:
@@ -180,4 +177,88 @@ class Match(models.Model):
         return True
 
     def __str__(self):
-        return self.venue
+        return self.organizer.name + " " + str(self.date) + " " + str(self.time) + " " + self.venue
+
+class CricketScore(models.Model):
+    event = models.ForeignKey(Event, on_delete=models.CASCADE)
+    team = models.ForeignKey(Team, on_delete=models.CASCADE, related_name='team1_score')
+    match = models.ForeignKey(Match, on_delete=models.CASCADE)
+    score = models.IntegerField()
+    overs = models.IntegerField()
+    wickets = models.IntegerField()
+    choices = [
+        ('win', 'Win'),
+        ('loss', 'Loss'),
+        ('tie', 'Tie'),
+        ('no_result', 'No Result'),
+    ]
+    verdict = models.CharField(max_length=20, choices=choices)
+
+    def __str__(self):
+        return f"Match: {self.match}, Team1 Score: {self.team1_score}, Team2 Score: {self.team2_score}"
+
+class AthleticsScore(models.Model):
+    event = models.ForeignKey(Event, on_delete=models.CASCADE)
+    match = models.ForeignKey(Match, on_delete=models.CASCADE)
+    participant = models.ForeignKey(Participant, on_delete=models.CASCADE, related_name='athletics_scores')
+    verdict_choices = [
+        ('Qualified', 'Qualified'),
+        ('Disqualified', 'Disqualified'),
+        ('Did Not Finish', 'Did Not Finish'),
+    ]
+    verdict = models.CharField(max_length=20, choices=verdict_choices, null=True, blank=True, default='Did Not Finish')
+    time = models.DurationField(null=True, blank=True)  # Time taken (e.g., for races)
+    distance = models.DecimalField(max_digits=10, decimal_places=2, null=True, blank=True)  # Distance covered (e.g., for jumps or throws)
+    position = models.IntegerField(null=True, blank=True)  # Position in the event (1st, 2nd, etc.)
+
+    def __str__(self):
+        return f"Event: {self.event}, Participant: {self.participant}, Time: {self.time}, Distance: {self.distance}, Position: {self.position}"
+
+class BadmintonScore(models.Model):
+    event = models.ForeignKey(Event, on_delete=models.CASCADE)
+    match = models.ForeignKey(Match, on_delete=models.CASCADE)
+    team = models.ForeignKey(Team, on_delete=models.CASCADE, related_name='badminton_scores')
+    sets_won = models.IntegerField(default=0)  # Number of sets won by the team
+    points = models.IntegerField(default=0)  # Points awarded for the match
+    verdict_choices = [
+        ('win', 'Win'),
+        ('loss', 'Loss'),
+    ]
+    verdict = models.CharField(max_length=20, choices=verdict_choices, null=True, blank=True)
+
+    def save(self, *args, **kwargs):
+        # Automatically calculate points based on the verdict
+        if self.verdict == 'win':
+            self.points = 2  # 2 points for a win
+        else:
+            self.points = 0  # No points for a loss
+        super(BadmintonScore, self).save(*args, **kwargs)
+
+    def __str__(self):
+        return f"Match: {self.match}, Team: {self.team}, Sets Won: {self.sets_won}, Verdict: {self.verdict}"
+
+class FootballScore(models.Model):
+    event = models.ForeignKey(Event, on_delete=models.CASCADE)
+    match = models.ForeignKey(Match, on_delete=models.CASCADE)
+    team = models.ForeignKey(Team, on_delete=models.CASCADE, related_name='football_scores')
+    goals = models.IntegerField(default=0)  # Goals scored by the team
+    verdict_choices = [
+        ('win', 'Win'),
+        ('loss', 'Loss'),
+        ('draw', 'Draw'),
+    ]
+    verdict = models.CharField(max_length=20, choices=verdict_choices, null=True, blank=True)
+    points = models.IntegerField(default=0)  # Points awarded for the match
+
+    def save(self, *args, **kwargs):
+        # Automatically calculate points based on the verdict
+        if self.verdict == 'win':
+            self.points = 3  # 3 points for a win
+        elif self.verdict == 'draw':
+            self.points = 1  # 1 point for a draw
+        else:
+            self.points = 0  # No points for a loss
+        super(FootballScore, self).save(*args, **kwargs)
+
+    def __str__(self):
+        return f"Match: {self.match}, Team: {self.team}, Goals: {self.goals}, Verdict: {self.verdict}"

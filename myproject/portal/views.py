@@ -5,7 +5,8 @@ from django.contrib.auth import login as auth_login, login
 from .forms import RegistrationForm, OrganizerLoginForm, EventForm
 from .models import Participant, Organizer, Match, Event, Team, BannedParticipants, College
 from django.contrib.auth.decorators import login_required, user_passes_test
-from .forms import MatchForm
+from .forms import MatchForm, TeamForm
+import django_tables2 as tables
 
 # Create your views here.
 def base(request):
@@ -90,10 +91,14 @@ def profile(request):
 
 def match_details(request, match_id):
     match = Match.objects.get(id=match_id)
-    teams = Team.objects.filter(match=match)
+    print(match.teams)
+    teams = match.teams.all()
+    print(match)
+    form = TeamForm()
     context = {
         'match': match,
         'teams': teams,
+        'form': form
     }
     return render(request, 'portal/matchDetails.html', context)
 
@@ -165,10 +170,39 @@ def event_details(request, event_id):
     event = Event.objects.get(id=event_id)
     matches = Match.objects.filter(event=event)
     colleges = College.objects.filter(participant__team__event=event).distinct()
+    participants = Participant.objects.filter(team__event=event)  # Default value for participants
+
+    if request.method == 'GET':
+        filter_by = request.GET.get('filter_by')
+        filter_value = request.GET.get('filter_value')
+        if filter_by == 'name':
+            participants = Participant.objects.filter(name=filter_value, team__event=event)
+        elif filter_by == 'email':
+            participants = Participant.objects.filter(email=filter_value, team__event=event)
+        elif filter_by == 'phone':
+            participants = Participant.objects.filter(phone=filter_value, team__event=event)
+        elif filter_by == 'college':
+            participants = Participant.objects.filter(college=filter_value, team__event=event)
+        elif filter_by == 'gender':
+            participants = Participant.objects.filter(gender=filter_value, team__event=event)
+        else:
+            participants = Participant.objects.filter(team__event=event)
+        
+        college_filter_by = request.GET.get('college_filter_by')
+        college_filter_value = request.GET.get('college_filter_value')
+        if college_filter_by == 'name':
+            colleges = College.objects.filter(name=college_filter_value, participant__team__event=event)
+        elif college_filter_by == 'address':
+            colleges = College.objects.filter(address=college_filter_value, participant__team__event=event)
+        elif college_filter_by == 'pincode':
+            colleges = College.objects.filter(pincode=college_filter_value, participant__team__event=event)
+        else:
+            colleges = College.objects.filter(participant__team__event=event)
     context = {
         'event': event,
         'matches': matches,
         'colleges': colleges,
+        'participants': participants,
     }
     return render(request, 'portal/eventDetails.html', context)
 
@@ -217,3 +251,25 @@ def ban_participant(request, participant_id, team_id):
         participant.banPlayer(event)
         return redirect('events')
     return render(request, 'portal/ban_participant.html', {'participant': participant})
+
+def addTeam(request, match_id):
+    if request.method == 'POST':
+        match = Match.objects.get(id=match_id)
+        event = match.event
+        form = TeamForm(request.POST)
+        print(form)
+        event_form = form.changed_data.get('event')
+        if event_form != event:
+            return redirect(request.path_info)
+        team = form.changed_data.get('team')
+        if team.max_size < event.min_size:
+            return redirect(request.path_info)
+        match.addTeam(team)
+        match.save()
+        if form.is_valid():
+            team.save()
+            return redirect('organizer_dashboard')
+    else:
+        form = TeamForm()
+
+    return render(request, 'portal/addTeam.html', {'form': form})
