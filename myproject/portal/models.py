@@ -7,6 +7,7 @@ from django.db.models import Count
 from django.core.exceptions import ValidationError
 from django.contrib.auth.models import AnonymousUser
 
+
 class College(models.Model):
     name = models.CharField(max_length=100)
     address = models.CharField(max_length=100)
@@ -45,7 +46,7 @@ class Participant(models.Model):
         teams = Team.objects.filter(event=event, college=self.college)
         for team in teams:
             team.removePlayer(self)
-        banned = BannedParticipants(participant=self, event=event)
+        banned = BannedParticipants(participant=self, team=team)
         banned.save()
         print(f"Banned {self} from {event}")
         return self
@@ -90,14 +91,30 @@ class Organizer(AbstractUser):
         return self.name
         
 class Event(models.Model):
-    name_of_sports=models.CharField(max_length=100)
-    GENDER_CHOICES = [
-        ('M', 'Men'),
-        ('W', 'Women'),
-        ('X', 'Mixed'),
+    SPORT_CHOICES= [
+        ('Cricket', 'Cricket'),
+        ('Football', 'Football'),
+        ('Badminton', 'Badminton'),
+        ('Athletics-100m', 'Athletics-100m'),
+        ('Athletics-200m', 'Athletics-200m'),
     ]
-    gender = models.CharField(max_length=1, choices=GENDER_CHOICES)
-    organizer=models.OneToOneField(Organizer, on_delete=models.CASCADE, related_name='event_organizer')
+    GENDER_CHOICES = [
+        ('Men','Men'),
+        ('Women','Women'),
+        ('Mixed','Mixed'),
+    ]
+    SCORE_CHOICES = [
+        ('Runs', 'Runs'),
+        ('Goals', 'Goals'),
+        ('Points', 'Points'),
+        ('Time', 'Time'),
+    ]
+    name_of_sports = models.CharField(max_length=100, choices=SPORT_CHOICES)
+    scoring_system = models.CharField(max_length=50, choices=SCORE_CHOICES)
+    gender = models.CharField(max_length=50, choices=GENDER_CHOICES)
+    organizer=models.ForeignKey(Organizer, on_delete=models.CASCADE)
+    max_size = models.IntegerField()
+    min_size = models.IntegerField()
 
     def __str__(self):
         return self.name_of_sports
@@ -139,8 +156,15 @@ class Team(models.Model):
 
     def __str__(self):
         return f"Team from {self.college} with max size {self.max_size}"
+    
+class Registration(models.Model):
+    team = models.ForeignKey(Team, on_delete=models.CASCADE)
+    event = models.ForeignKey(Event, on_delete=models.CASCADE)
 
-
+class Score(models.Model):
+    team=models.ForeignKey(Team, on_delete=models.CASCADE)
+    round_number=models.IntegerField()
+    score_value=models.CharField(max_length=10)
 
 class Match(models.Model):
     date = models.DateField()
@@ -149,6 +173,11 @@ class Match(models.Model):
     organizer = models.ForeignKey(Organizer, on_delete=models.CASCADE)
     teams = models.ManyToManyField(Team)
     event=models.ForeignKey(Event, on_delete=models.CASCADE)
+
+    def checkTeam(self, team):
+        if team.participants.count() < team.event.min_size:
+            return False
+        return True
 
     def __str__(self):
         return self.venue

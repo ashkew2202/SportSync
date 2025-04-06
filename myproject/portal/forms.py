@@ -35,14 +35,56 @@ class MatchForm(forms.ModelForm):
         max_length=200,
         widget=forms.TextInput(attrs={'class': 'form-control', 'placeholder': 'Venue'})
     )
-    team = forms.ModelChoiceField(
+    team = forms.ModelMultipleChoiceField(
         queryset=Team.objects.all(),
-        widget=forms.Select(attrs={'class': 'form-control'})
+        widget=forms.SelectMultiple(attrs={'class': 'form-control'})
     )
     event = forms.ModelChoiceField(
         queryset=Event.objects.all(),
         widget=forms.Select(attrs={'class': 'form-control'})
     )
+    
     class Meta:
         model = Match
         fields = ['match_date', 'match_time', 'venue', 'team', 'event']
+
+class EventForm(forms.ModelForm):
+    SPORT_CHOICES= [
+        ('Cricket', 'Cricket'),
+        ('Football', 'Football'),
+        ('Badminton', 'Badminton'),
+        ('Athletics-100m', 'Athletics-100m'),
+        ('Athletics-200m', 'Athletics-200m'),
+    ]
+    gender_choices = [
+        ('Men','Men'),
+        ('Women','Women'),
+        ('Mixed','Mixed'),
+    ]
+    scoring_system_choices = [
+        ('Runs', 'Runs'),
+        ('Goals', 'Goals'),
+        ('Points', 'Points'),
+        ('Time', 'Time'),
+    ]
+    name_of_sports = forms.ChoiceField(
+        choices=SPORT_CHOICES,
+        widget=forms.Select(attrs={'class': 'form-control'})
+    )
+    gender = forms.ChoiceField(
+        choices=gender_choices,
+        widget=forms.Select(attrs={'class': 'form-control'})
+    )
+    scoring_system = forms.ChoiceField(
+        choices=scoring_system_choices,
+        widget=forms.Select(attrs={'class': 'form-control'})
+    )
+    max_size = forms.IntegerField(
+        widget=forms.NumberInput(attrs={'class': 'form-control', 'placeholder': 'Max Size'})
+    )
+    min_size = forms.IntegerField(
+        widget=forms.NumberInput(attrs={'class': 'form-control', 'placeholder': 'Minimum Size'})
+    )
+    class Meta:
+        model = Event
+        fields = ['name_of_sports', 'gender', 'scoring_system','max_size','min_size']

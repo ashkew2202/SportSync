@@ -1,0 +1,55 @@
+{% extends "organizer_base.html" %}
+
+{% block content %}
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Match Details</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0-alpha1/dist/css/bootstrap.min.css" rel="stylesheet">
+</head>
+<body>
+    <div class="container mt-5">
+        
+        <h1 class="mb-4">Match Details</h1>
+        
+        <div class="card">
+            <div class="card-body">
+                {% for match in matches %}
+                    <div class="mb-3">
+                        <p><strong>Date:</strong> {{ match.date }}</p>
+                        <p><strong>Time:</strong> {{ match.time }}</p>
+                        <p><strong>Location:</strong> {{ match.venue }}</p>
+                        <a href="{% url 'match_details' match.id %}" class="btn btn-info mt-2">View Match Details</a>
+                    </div>
+                {% endfor %}
+            </div>
+        </div>
+
+        <div class="mt-4">
+            <a href="{% url 'add_match' %}" class="btn btn-primary">Add a Match</a>
+        </div>
+    </div>
+
+    <div class="container mt-5">
+        <h1 class="mb-4">Colleges</h1>
+        
+        <div class="card">
+            <div class="card-body">
+                {% for college in colleges %}
+                    <div class="mb-3">
+                        <p><strong>Name:</strong> {{ college.name }}</p>
+                        <p><strong>Location:</strong> {{ college.address }}</p>
+                        <p><strong>Pin Code:</strong> {{ college.pincode }}</p>
+                        <a href="{% url 'college_details' college_id=college.id %}" class="btn btn-info mt-2">View Participants</a>
+                    </div>
+                {% endfor %}
+            </div>
+        </div>
+    </div>
+
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0-alpha1/dist/js/bootstrap.bundle.min.js"></script>
+</body>
+</html>
+{% endblock %}</div>

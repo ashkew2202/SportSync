@@ -25,7 +25,7 @@
                         <td>{{ match.opponent }}</td>
                         <td>{{ match.date }}</td>
                         <td>{{ match.time }}</td>
-                        <td>{{ match.location }}</td>
+                        <td>{{ match.venue }}</td>
                     </tr>
                     {% empty %}
                     <tr>
@@ -36,5 +36,47 @@
             </table>
         </div>
     </div>
+
+    <div class="card mt-4">
+        <div class="card-header bg-success text-white">
+            <h4>Events</h4>
+        </div>
+        <div class="card-body">
+            <table class="table table-striped">
+                <thead>
+                    <tr>
+                        <th>Name Of Sports</th>
+                        <th>Gender</th>
+                        <th>Organizer</th>
+                        <th>Action</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for event in events %}
+                    <tr>
+                        <td>{{ event.name_of_sports }}</td>
+                        <td>{{ event.gender }}</td>
+                        <td>{{ event.organizer.organizerCompany }}</td>
+                        <td>
+                            <form method="post" action="{% url 'register_participant' event_id=event.id %}">
+                                {% csrf_token %}
+                                {% if event.is_registered %}
+                                    <button type="button" class="btn btn-secondary btn-sm" disabled>Registered</button>
+                                {% else %}
+                                    <button type="submit" class="btn btn-primary btn-sm">Register</button>
+                                {% endif %}
+                                
+                            </form>
+                        </td>
+                    </tr>
+                    {% empty %}
+                    <tr>
+                        <td colspan="5" class="text-center">No events available.</td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    </div></div>
 </div>
 {% endblock %}

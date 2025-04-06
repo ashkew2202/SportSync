@@ -16,4 +16,10 @@ urlpatterns=[
         path('delete_match/<int:match_id>/',views.delete_match,name='delete_match'),
         path('add_match/',views.addMatch,name='add_match'),
         path('participant_dashboard/',views.participant_entry,name='participant_dashboard'),
+        path('addEvent/', views.add_event, name='add_event'),
+        path('eventDetails/<int:event_id>/',views.event_details, name='event_details'),
+        path('collegeDetails/<int:college_id>/',views.college_members, name='college_details'),
+        path('events/',views.event_view,name='events'),
+        path('register_participant/<int:event_id>',views.register_participant,name='register_participant'),
+        path('banParticipant/<int:participant_id>/<int:team_id>/',views.ban_participant,name='ban_participant'),
 ]

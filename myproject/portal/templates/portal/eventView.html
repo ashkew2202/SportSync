@@ -1,0 +1,47 @@
+<!DOCTYPE html>
+<!-- Extended participant base -->
+<html lang="en">
+{% extends "participant_base.html" %}
+
+{% block head %}
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Registered Teams</title>
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css">
+{% endblock %}
+
+{% block content %}
+    <div class="container mt-5">
+        <h1 class="text-center">Your Registered Teams</h1>
+        <div class="mt-4">
+            <ul class="list-group">
+
+                    <li class="list-group-item">
+                        <table class="table mt-3">
+                            <thead>
+                            <tr>
+                                <th>Captain</th>
+                                <th>College</th>
+                                <th>Event</th>
+                            </tr>
+                            </thead>
+                            <tbody>
+                            {% for team in teams %}
+                                <tr>
+                                <td><strong>{{ team.captain }}</strong></td>
+                                <td>{{ team.college }}</td>
+                                <td>{{ team.event }}</td>
+                                </tr>
+                            {% empty %}
+                                <tr>
+                                <td colspan="3" class="text-center text-muted">You have not registered for any teams yet.</td>
+                                </tr>
+                            {% endfor %}
+                            </tbody>
+                        </table>
+                
+            </ul>
+        </div>
+    </div>
+{% endblock %}</li></div>
+

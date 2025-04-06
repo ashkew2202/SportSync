@@ -1,0 +1,51 @@
+{% extends 'organizer_base.html' %}
+
+{% block content %}
+<div class="container mt-4">
+    <h2 class="mb-4">List of Participants</h2>
+    <table class="table table-bordered table-striped">
+        <thead class="thead-dark">
+            <tr>
+                <th>Name</th>
+                <th>Email</th>
+                <th>College</th>
+                <th>Phone</th>
+                <th>Actions</th>
+            </tr>
+        </thead>
+        <tbody>
+            {% for participant in participants %}
+            <tr>
+                <td>{{ participant.name }}</td>
+                <td>{{ participant.email }}</td>
+                <td>{{ participant.college }}</td>
+                <td>{{ participant.phone }}</td>
+                <td>
+                    <form method="post" action="{% url 'ban_participant' participant_id=participant.id team_id=team.id %}">
+                        {% csrf_token %}
+                        <button class="btn btn-danger btn-sm" onclick="banParticipant('{{ participant.id }}')">Ban</button>
+                    </form>
+                        <button class="btn btn-warning btn-sm" onclick="kickParticipant('{{ participant.id }}')">Kick</button>
+                </td>
+            </tr>
+            {% endfor %}
+        </tbody>
+    </table>
+</div>
+
+<script>
+    function banParticipant(participantId) {
+        if (confirm("Are you sure you want to ban this participant?")) {
+            // Add your AJAX or form submission logic here
+            console.log("Banning participant with ID:", participantId);
+        }
+    }
+
+    function kickParticipant(participantId) {
+        if (confirm("Are you sure you want to kick this participant?")) {
+            // Add your AJAX or form submission logic here
+            console.log("Kicking participant with ID:", participantId);
+        }
+    }
+</script>
+{% endblock %}

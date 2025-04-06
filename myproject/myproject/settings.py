@@ -152,4 +152,4 @@ STATIC_URL = 'static/'
 DEFAULT_AUTO_FIELD = 'django.db.models.BigAutoField'
 ACCOUNT_SIGNUP_REDIRECT_URL = '/registration/'
 LOGIN_REDIRECT_URL = '/participant_dashboard/'
-ALLOWED_HOSTS = ['ashkew2202.pythonanywhere.com']
+ALLOWED_HOSTS = ['ashkew2202.pythonanywhere.com','localhost']
