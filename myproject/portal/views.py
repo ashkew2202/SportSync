@@ -7,6 +7,8 @@ from .models import Participant, Organizer, Match, Event, Team, BannedParticipan
 from django.contrib.auth.decorators import login_required, user_passes_test
 from .forms import MatchForm, TeamForm
 import django_tables2 as tables
+from django.core.mail import send_mail
+from django.conf import settings
 
 # Create your views here.
 def base(request):
@@ -219,7 +221,8 @@ def college_members(request, college_id):
     return render(request, 'portal/collegeMembers.html', context)
 
 def event_view(request):
-    teams = Team.objects.filter(participants__email=request.user.email).distinct()
+    teams = Team.objects.filter(participants__email=request.user.email).distinct() 
+
     context = {
         'teams': teams,
     }
@@ -239,8 +242,31 @@ def register_participant(request, event_id):
         team.addParticipant(participant)
         team.save()
     else:
-        team.addParticipant(participant)
-        team.save()
+        # Send an email to the captain of the team
+
+        if team.captain:
+            subject = "New Participant Request for Your Team"
+            message = f"""
+            Dear {team.captain.name},
+
+            A new participant has requested to join your team for the event "{event}".
+            Here are the details of the participant:
+
+            Name: {participant.name}
+            Email: {participant.email}
+            Phone: {participant.phone}
+            Gender: {participant.gender}
+            College: {participant.college.name}
+
+            Please review the request and take appropriate action.
+
+            Best regards,
+            SportSync Team
+            """
+            from_email = settings.EMAIL_HOST_USER
+            recipient_list = [team.captain.email]
+
+            send_mail(subject, message, from_email, recipient_list)
     return redirect('events')
 
 def ban_participant(request, participant_id, team_id):
@@ -273,3 +299,44 @@ def addTeam(request, match_id):
         form = TeamForm()
 
     return render(request, 'portal/addTeam.html', {'form': form})
+
+def team_details(request, team_id):
+    team = Team.objects.get(id=team_id)
+    participants = team.participants.all()
+    participants_ofSameCollege = Participant.objects.filter(college=team.college).exclude(id__in=participants.values_list('id', flat=True))
+    if 1+participants.count() < team.max_size:
+        is_team_full = False
+    else:
+        is_team_full = True
+    context = {
+        'participants_ofSameCollege': participants_ofSameCollege,
+        'is_team_full': is_team_full,
+        'team': team,
+        'participants': participants,
+    }
+    return render(request, 'portal/teamDetails.html', context)
+
+def addTeamMembers(request, team_id):
+    team = Team.objects.get(id=team_id)
+    participants_ofSameCollege = Participant.objects.filter(college=team.college).exclude(id__in=team.participants.values_list('id', flat=True))
+
+    if request.method == 'POST':
+        participant_id = request.POST.get('new_member')
+        if participant_id:
+            participant = Participant.objects.get(id=participant_id)
+            if team.participants.count() < team.max_size:
+                team.participants.add(participant)
+                team.save()
+                return redirect('team_details', team_id=team.id)
+            else:
+                return render(request, 'portal/addTeamMembers.html', {
+                    'team': team,
+                    'participants_ofSameCollege': participants_ofSameCollege,
+                    'error': 'Team is already full.'
+                })
+
+    return render(request, 'portal/addTeamMembers.html', {
+        'team': team,
+        'participants_ofSameCollege': participants_ofSameCollege
+    })
+    

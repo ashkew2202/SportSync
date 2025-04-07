@@ -23,4 +23,6 @@ urlpatterns=[
         path('register_participant/<int:event_id>',views.register_participant,name='register_participant'),
         path('banParticipant/<int:participant_id>/<int:team_id>/',views.ban_participant,name='ban_participant'),
         path('addTeam/<int:match_id>/',views.addTeam,name='add_team'),
+        path('teamDetails/<int:team_id>/',views.team_details,name='team_details'),
+        path('addTeamMember/<int:team_id>/',views.addTeamMembers,name='add_team_member'),
 ]

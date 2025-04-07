@@ -23,6 +23,7 @@
                                 <th>Captain</th>
                                 <th>College</th>
                                 <th>Event</th>
+                                <th>Action</th>
                             </tr>
                             </thead>
                             <tbody>
@@ -31,7 +32,14 @@
                                 <td><strong>{{ team.captain }}</strong></td>
                                 <td>{{ team.college }}</td>
                                 <td>{{ team.event }}</td>
-                                </tr>
+                                <td>
+                                    <form method = "POST" action="{% url 'team_details' team_id=team.id %}">
+                                    {% csrf_token %}
+                                    {% if team.captain.email == user.email %}
+                                        <button type="submit" class="btn btn-primary">Update</button>
+                                    {% endif %}
+                                    </form>
+                                <td>
                             {% empty %}
                                 <tr>
                                 <td colspan="3" class="text-center text-muted">You have not registered for any teams yet.</td>
