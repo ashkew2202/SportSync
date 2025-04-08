@@ -25,4 +25,5 @@ urlpatterns=[
         path('addTeam/<int:match_id>/',views.addTeam,name='add_team'),
         path('teamDetails/<int:team_id>/',views.team_details,name='team_details'),
         path('addTeamMember/<int:team_id>/',views.addTeamMembers,name='add_team_member'),
+        path('updateStatus/<int:match_id>/',views.update_status,name='update_status'),
 ]

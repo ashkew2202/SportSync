@@ -18,7 +18,19 @@
             <p><strong>Location:</strong> {{ match.venue }}</p>
         </div>
 
-        <h2 class="text-center mb-4">Update Match Details</h2>
+        <h2 class="text-center mb-4">Update Match Status</h2>
+        <form method="POST" action="{% url 'update_status' match_id=match.id %}" class="card p-4 mb-4">
+            {% csrf_token %}
+            <div class="mb-3">
+            <label for="status" class="form-label">Match Status:</label>
+            <select id="status" name="status" class="form-select">
+                <option value="Scheduled" selected>Scheduled</option>
+                <option value="Completed">Completed</option>
+                <option value="Cancelled">Cancelled</option>
+            </select>
+            </div>
+            <button type="submit" class="btn btn-primary w-100">Update Status</button>
+        </form>
         <form method="POST" action="{% url 'update_details' match_id=match.id %}" class="card p-4">
             {% csrf_token %}
 

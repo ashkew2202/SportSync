@@ -124,8 +124,31 @@ def addMatch(request):
     if request.method == 'POST':
         form = MatchForm(request.POST)
         if form.is_valid():
-            match = form.save(commit=False)
-            match.organizer = request.user
+            time = form.cleaned_data['time']
+            date = form.cleaned_data['date']
+            venue = form.cleaned_data['venue']
+            event = form.cleaned_data['event']
+            teams = form.cleaned_data['teams']
+            teams = [team for team in teams if team.event.id == event.id]
+            if event.gender in ['Men', 'Women']:
+                team_gender = 'M' if event.gender == 'Men' else 'F'
+                print(team_gender)
+                for team in teams:
+                    if any(participant.gender != team_gender for participant in team.participants.all()):
+                        print(any(participant.gender) for participant in team.participants.all())
+                        return render(request, 'portal/addMatch.html', {
+                            'form': form,
+                            'error': f'Team members must all be {team_gender.lower()} to participate in this event.'
+                        })
+            organizer = request.user
+            match = Match.objects.create(
+                time=time,
+                date=date,
+                venue=venue,
+                event=event,
+                organizer=organizer,
+            )
+            match.teams.set(teams)
             match.save()
             return redirect('organizer_dashboard')
     else:
@@ -142,8 +165,16 @@ def participant_entry(request):
         participant = None
     if participant:
         teams = Team.objects.filter(participants=participant).distinct()
-        matches = Match.objects.filter(teams__in=teams).distinct()
-        events = Event.objects.all().distinct()
+        events = Event.objects.filter(team_event__participants=participant).distinct()
+        print(events)
+        print(teams)
+        
+        print(matches)
+        matches = list(set(matches))  # Remove duplicates
+        
+        events = Event.objects.filter(
+            gender__in=['Mixed', 'Men' if participant.gender == 'M' else 'Women']
+        ).distinct()
         context = {
             'participant': participant,
             'teams': teams,
@@ -232,6 +263,12 @@ def register_participant(request, event_id):
     event = Event.objects.get(id=event_id)
     participant = Participant.objects.get(email=request.user.email)
     team = Team.objects.filter(event=event, college=participant.college, max_size=event.max_size).first()
+    # Ensure the team captain's gender matches the event requirement
+    if event.gender and event.gender != 'Mixed':
+        if (event.gender == 'Men' and participant.gender != 'Male') or (event.gender == 'Women' and participant.gender != 'Female'):
+            return render(request, 'portal/register_participant.html', {
+                'error': f'The team captain must be {event.gender.lower()} for this event.'
+            })
     if not team:
         team = Team.objects.create(
             event=event,
@@ -242,8 +279,13 @@ def register_participant(request, event_id):
         team.addParticipant(participant)
         team.save()
     else:
+        # Confirm the gender of the team members matches the event requirement
+        if event.gender and event.gender != 'Mixed' and participant.gender != event.gender:
+            if (event.gender == 'Men' and participant.gender != 'Male') or (event.gender == 'Women' and participant.gender != 'Female'):
+                return render(request, 'portal/register_participant.html', {
+                    'error': f'This event is restricted to {event.gender.lower()} participants only.'
+                })
         # Send an email to the captain of the team
-
         if team.captain:
             subject = "New Participant Request for Your Team"
             message = f"""
@@ -283,18 +325,16 @@ def addTeam(request, match_id):
         match = Match.objects.get(id=match_id)
         event = match.event
         form = TeamForm(request.POST)
-        print(form)
-        event_form = form.changed_data.get('event')
+        event_form = form.cleaned_data['event']
+        print(event_form)
         if event_form != event:
             return redirect(request.path_info)
-        team = form.changed_data.get('team')
+        team = form.cleaned_data['team']
         if team.max_size < event.min_size:
             return redirect(request.path_info)
         match.addTeam(team)
         match.save()
-        if form.is_valid():
-            team.save()
-            return redirect('organizer_dashboard')
+        return redirect('match_details', match_id=match.id)
     else:
         form = TeamForm()
 
@@ -340,3 +380,11 @@ def addTeamMembers(request, team_id):
         'participants_ofSameCollege': participants_ofSameCollege
     })
     
+def update_status(request, match_id):
+    match = Match.objects.get(id=match_id)
+    if request.method == 'POST':
+        status = request.POST.get('status')
+        match.status = status
+        match.save()
+        return redirect('match_details', match_id=match.id)
+    return render(request, 'portal/update_status.html', {'match': match})

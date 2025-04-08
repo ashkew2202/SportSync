@@ -59,6 +59,7 @@
                             <th>Date</th>
                             <th>Time</th>
                             <th>Location</th>
+                            <th>Status</th>
                             <th>Actions</th>
                         </tr>
                     </thead>
@@ -68,6 +69,7 @@
                             <td>{{ match.date }}</td>
                             <td>{{ match.time }}</td>
                             <td>{{ match.venue }}</td>
+                            <td>{{ match.status }}</td>
                             <td>
                                 <a href="{% url 'match_details' match.id %}" class="btn btn-info btn-sm">View Match Details</a>
                             </td>

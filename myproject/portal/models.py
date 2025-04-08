@@ -155,7 +155,7 @@ class Team(models.Model):
         return self
 
     def __str__(self):
-        return f"Team from {self.college} with max size {self.max_size}"
+        return f"Team for {self.event.name_of_sports} organized by {self.event.organizer.name} ({self.event.gender})"
 
 class Match(models.Model):
     date = models.DateField()
@@ -164,7 +164,11 @@ class Match(models.Model):
     organizer = models.ForeignKey(Organizer, on_delete=models.CASCADE)
     teams = models.ManyToManyField(Team)
     event = models.ForeignKey(Event, on_delete=models.CASCADE)
-
+    status = models.CharField(max_length=20, default='Scheduled', choices=[
+        ('Scheduled', 'Scheduled'),
+        ('Completed', 'Completed'),
+        ('Cancelled', 'Cancelled'),
+    ])
     def addTeam(self, team):
         if team.event != self.event:
             raise ValidationError("All teams in a match must belong to the same event.")

@@ -91,14 +91,24 @@ class EventForm(forms.ModelForm):
 
 class TeamForm(forms.ModelForm):
     event = forms.ModelChoiceField(
-        queryset=Event.objects.all(),
+        queryset=Event.objects.none(),
         widget=forms.Select(attrs={'class': 'form-control'})
     )
     teams = forms.ModelChoiceField(
-        queryset=Team.objects.filter(),
-        widget=forms.Select(attrs={'class': 'form-control'})
+            queryset=Team.objects.none(),
+            widget=forms.Select(attrs={'class': 'form-control'})
     )
-
+    def __init__(self, *args, **kwargs):
+        user = kwargs.pop('user', None)
+        super().__init__(*args, **kwargs)
+        if user and user.is_authenticated:
+            self.fields['event'].queryset = Event.objects.filter(organizer=user)
+        else:
+            self.fields['event'].queryset = Event.objects.none()
+        
+        event = kwargs.pop('event', None)
+        if event:
+            self.fields['teams'].queryset = Team.objects.filter(event=event)
     class Meta:
         model = Team
         fields = ['event', 'teams']
