@@ -1,5 +1,5 @@
 from django import forms
-from .models import Participant, Organizer, Match, Event, Team, College
+from .models import Participant, Organizer, Match, Event, Team, College, CricketScore, FootballScore, BadmintonScore, AthleticsScore
 
 class RegistrationForm(forms.ModelForm):
     name = forms.CharField(max_length=100)
@@ -112,3 +112,122 @@ class TeamForm(forms.ModelForm):
     class Meta:
         model = Team
         fields = ['event', 'teams']
+
+class CricketScoring(forms.ModelForm):
+    team1 = forms.ModelChoiceField(
+        queryset=Team.objects.none(),
+        widget=forms.Select(attrs={'class': 'form-control', 'placeholder': 'Team 1'})
+    )
+    team1_score = forms.IntegerField(
+        widget=forms.NumberInput(attrs={'class': 'form-control', 'placeholder': 'Team 1 Runs'})
+    )
+    team1_wickets = forms.IntegerField(
+        widget=forms.NumberInput(attrs={'class': 'form-control', 'placeholder': 'Team 1 Wickets'})
+    )
+    team1_overs = forms.DecimalField(
+        widget=forms.NumberInput(attrs={'class': 'form-control', 'placeholder': 'Team 1 Overs'}),
+        max_digits=4,
+        decimal_places=1
+    )
+    team2 = forms.ModelChoiceField(
+        queryset=Team.objects.none(),
+        widget=forms.Select(attrs={'class': 'form-control', 'placeholder': 'Team 2'})
+    )
+    team2_score = forms.IntegerField(
+        widget=forms.NumberInput(attrs={'class': 'form-control', 'placeholder': 'Team 2 Runs'})
+    )
+    
+    team2_wickets = forms.IntegerField(
+        widget=forms.NumberInput(attrs={'class': 'form-control', 'placeholder': 'Team 2 Wickets'})
+    )
+    
+    team2_overs = forms.DecimalField(
+        widget=forms.NumberInput(attrs={'class': 'form-control', 'placeholder': 'Team 2 Overs'}),
+        max_digits=4,
+        decimal_places=1
+    )
+    verdict_for_team1 = forms.ChoiceField(
+        choices=[('Win', 'Win'), ('Loss', 'Loss'), ('Tie', 'Tie')],
+        widget=forms.Select(attrs={'class': 'form-control', 'placeholder': 'Verdict'})
+    )
+    def __init__(self, *args, **kwargs):
+        match = kwargs.pop('match', None)
+        super().__init__(*args, **kwargs)
+        if match:
+            self.fields['team1'].queryset = match.teams.all()
+            self.fields['team2'].queryset = match.teams.all()
+
+    class Meta:
+        model = CricketScore
+        fields = ['team1', 'team1_score', 'team1_wickets', 'team1_overs', 'team2', 'team2_score', 'team2_wickets', 'team2_overs', 'verdict_for_team1']
+
+class FootballScoring(forms.ModelForm):
+    team1 = forms.ModelChoiceField(
+        queryset=Team.objects.none(),
+        widget=forms.Select(attrs={'class': 'form-control', 'placeholder': 'Team 1'})
+    )
+    team1_goals = forms.IntegerField(
+        widget=forms.NumberInput(attrs={'class': 'form-control', 'placeholder': 'Team 1 Goals'})
+    )
+    team1_points = forms.IntegerField(
+        widget=forms.NumberInput(attrs={'class': 'form-control', 'placeholder': 'Team 1 Points'})
+    )
+    team2 = forms.ModelChoiceField(
+        queryset=Team.objects.none(),
+        widget=forms.Select(attrs={'class': 'form-control', 'placeholder': 'Team 2'})
+    )
+    team2_goals = forms.IntegerField(
+        widget=forms.NumberInput(attrs={'class': 'form-control', 'placeholder': 'Team 2 Goals'})
+    )
+    team2_points = forms.IntegerField(
+        widget=forms.NumberInput(attrs={'class': 'form-control', 'placeholder': 'Team 2 Points'})
+    )
+    def __init__(self, *args, **kwargs):
+        match = kwargs.pop('match', None)
+        super().__init__(*args, **kwargs)
+        if match:
+            self.fields['team1'].queryset = match.teams.all()
+            self.fields['team2'].queryset = match.teams.all()
+
+    verdict_for_team1 = forms.ChoiceField(
+        choices=[('Win', 'Win'), ('Loss', 'Loss'), ('Draw', 'Draw')],
+        widget=forms.Select(attrs={'class': 'form-control', 'placeholder': 'Verdict'})
+    )
+    class Meta:
+        model = FootballScore
+        fields = ['team1', 'team1_goals', 'team2', 'team2_goals', 'verdict_for_team1']
+
+class BadmintonScoring(forms.ModelForm):
+    team1 = forms.ModelChoiceField(
+        queryset=Team.objects.none(),
+        widget=forms.Select(attrs={'class': 'form-control', 'placeholder': 'Team 1'})
+    )
+    team1_sets_won = forms.IntegerField(
+        widget=forms.NumberInput(attrs={'class': 'form-control', 'placeholder': 'Team 1 Sets Won'})
+    )
+    team1_points = forms.IntegerField(
+        widget=forms.NumberInput(attrs={'class': 'form-control', 'placeholder': 'Team 1 Points'})
+    )
+    team2 = forms.ModelChoiceField(
+        queryset=Team.objects.none(),
+        widget=forms.Select(attrs={'class': 'form-control', 'placeholder': 'Team 2'})
+    )
+    team2_sets_won = forms.IntegerField(
+        widget=forms.NumberInput(attrs={'class': 'form-control', 'placeholder': 'Team 2 Sets Won'})
+    )
+    team2_points = forms.IntegerField(
+        widget=forms.NumberInput(attrs={'class': 'form-control', 'placeholder': 'Team 2 Points'})
+    )
+    verdict_for_team1 = forms.ChoiceField(
+        choices=[('Win', 'Win'), ('Loss', 'Loss'), ('Draw', 'Draw')],
+        widget=forms.Select(attrs={'class': 'form-control', 'placeholder': 'Verdict'})
+    )
+    def __init__(self, *args, **kwargs):
+        match = kwargs.pop('match', None)
+        super().__init__(*args, **kwargs)
+        if match:
+            self.fields['team1'].queryset = match.teams.all()
+            self.fields['team2'].queryset = match.teams.all()
+    class Meta:
+        model = BadmintonScore
+        fields = ['team1', 'team1_points','team1_sets_won', 'team2', 'team2_points','team2_sets_won', 'verdict_for_team1']

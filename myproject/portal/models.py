@@ -185,18 +185,22 @@ class Match(models.Model):
 
 class CricketScore(models.Model):
     event = models.ForeignKey(Event, on_delete=models.CASCADE)
-    team = models.ForeignKey(Team, on_delete=models.CASCADE, related_name='team1_score')
+    team1 = models.ForeignKey(Team, on_delete=models.CASCADE, related_name='team1_score')
+    team2 = models.ForeignKey(Team, on_delete=models.CASCADE, related_name='team2_score')
+    team1_score = models.IntegerField()
+    team2_score = models.IntegerField()
+    team1_overs = models.IntegerField()
+    team2_overs = models.IntegerField()
+    team1_wickets = models.IntegerField()
+    team2_wickets = models.IntegerField()
     match = models.ForeignKey(Match, on_delete=models.CASCADE)
-    score = models.IntegerField()
-    overs = models.IntegerField()
-    wickets = models.IntegerField()
     choices = [
-        ('win', 'Win'),
-        ('loss', 'Loss'),
-        ('tie', 'Tie'),
-        ('no_result', 'No Result'),
+        ('Win', 'Win'),
+        ('Loss', 'Loss'),
+        ('Tie', 'Tie'),
+        ('No Result', 'No Result'),
     ]
-    verdict = models.CharField(max_length=20, choices=choices)
+    verdict_for_team1 = models.CharField(max_length=20, choices=choices)
 
     def __str__(self):
         return f"Match: {self.match}, Team1 Score: {self.team1_score}, Team2 Score: {self.team2_score}"
@@ -221,47 +225,62 @@ class AthleticsScore(models.Model):
 class BadmintonScore(models.Model):
     event = models.ForeignKey(Event, on_delete=models.CASCADE)
     match = models.ForeignKey(Match, on_delete=models.CASCADE)
-    team = models.ForeignKey(Team, on_delete=models.CASCADE, related_name='badminton_scores')
-    sets_won = models.IntegerField(default=0)  # Number of sets won by the team
-    points = models.IntegerField(default=0)  # Points awarded for the match
+    team1 = models.ForeignKey(Team, on_delete=models.CASCADE, related_name='badminton_scores')
+    team2 = models.ForeignKey(Team, on_delete=models.CASCADE, related_name='badminton_scores2')
+    team1_sets_won = models.IntegerField(default=0)  # Number of sets won by team1
+    team2_sets_won = models.IntegerField(default=0)  # Number of sets won by team2
+    team1_points = models.IntegerField(default=0)  # Points awarded for team1
+    team2_points = models.IntegerField(default=0)  # Points awarded for team2
     verdict_choices = [
-        ('win', 'Win'),
-        ('loss', 'Loss'),
+        ('Win', 'Win'),
+        ('Loss', 'Loss'),
     ]
-    verdict = models.CharField(max_length=20, choices=verdict_choices, null=True, blank=True)
+    verdict_for_team1 = models.CharField(max_length=20, choices=verdict_choices, null=True, blank=True)
 
     def save(self, *args, **kwargs):
         # Automatically calculate points based on the verdict
-        if self.verdict == 'win':
-            self.points = 2  # 2 points for a win
+        # Automatically calculate points based on the verdict
+        if self.verdict_for_team1 == 'win':
+            self.team1_points = 2  # 3 points for a win
+            self.team2_points = 0  # No points for a loss
+        elif self.verdict_for_team1 == 'draw':
+            self.team1_points = 1  # 1 point for a draw
+            self.team2_points = 1  # 1 point for a draw
         else:
-            self.points = 0  # No points for a loss
+            self.team1_points = 0  # No points for a loss
+            self.team2_points = 2  # 3 points for a win
         super(BadmintonScore, self).save(*args, **kwargs)
 
     def __str__(self):
-        return f"Match: {self.match}, Team: {self.team}, Sets Won: {self.sets_won}, Verdict: {self.verdict}"
+        return f"Match: {self.match}, Team1 Sets Won: {self.team1_sets_won}, Team2 Sets Won: {self.team2_sets_won}, Verdict for Team1: {self.verdict_for_team1}"
 
 class FootballScore(models.Model):
     event = models.ForeignKey(Event, on_delete=models.CASCADE)
     match = models.ForeignKey(Match, on_delete=models.CASCADE)
-    team = models.ForeignKey(Team, on_delete=models.CASCADE, related_name='football_scores')
-    goals = models.IntegerField(default=0)  # Goals scored by the team
+    team1 = models.ForeignKey(Team, on_delete=models.CASCADE, related_name='football_scores1')
+    team2 = models.ForeignKey(Team, on_delete=models.CASCADE, related_name='football_scores2')
+    team1_goals = models.IntegerField(default=0)  # Goals scored by team1
+    team2_goals = models.IntegerField(default=0)  # Goals scored by team2
+    team1_points = models.IntegerField(default=0)  # Points awarded for team1
+    team2_points = models.IntegerField(default=0)  # Points awarded for team2
     verdict_choices = [
-        ('win', 'Win'),
-        ('loss', 'Loss'),
-        ('draw', 'Draw'),
+        ('Win', 'Win'),
+        ('Loss', 'Loss'),
+        ('Draw', 'Draw'),
     ]
-    verdict = models.CharField(max_length=20, choices=verdict_choices, null=True, blank=True)
-    points = models.IntegerField(default=0)  # Points awarded for the match
+    verdict_for_team1 = models.CharField(max_length=20, choices=verdict_choices, null=True, blank=True)
 
     def save(self, *args, **kwargs):
         # Automatically calculate points based on the verdict
-        if self.verdict == 'win':
-            self.points = 3  # 3 points for a win
-        elif self.verdict == 'draw':
-            self.points = 1  # 1 point for a draw
+        if self.verdict_for_team1 == 'win':
+            self.team1_points = 3  # 3 points for a win
+            self.team2_points = 0  # No points for a loss
+        elif self.verdict_for_team1 == 'draw':
+            self.team1_points = 1  # 1 point for a draw
+            self.team2_points = 1  # 1 point for a draw
         else:
-            self.points = 0  # No points for a loss
+            self.team1_points = 0  # No points for a loss
+            self.team2_points = 3  # 3 points for a win
         super(FootballScore, self).save(*args, **kwargs)
 
     def __str__(self):

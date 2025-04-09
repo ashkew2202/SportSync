@@ -3,9 +3,9 @@ from . import decorators
 from django.contrib.auth.models import User
 from django.contrib.auth import login as auth_login, login
 from .forms import RegistrationForm, OrganizerLoginForm, EventForm
-from .models import Participant, Organizer, Match, Event, Team, BannedParticipants, College
+from .models import Participant, Organizer, Match, Event, Team, BannedParticipants, College, CricketScore, AthleticsScore, FootballScore, BadmintonScore
 from django.contrib.auth.decorators import login_required, user_passes_test
-from .forms import MatchForm, TeamForm
+from .forms import MatchForm, TeamForm, CricketScoring, FootballScoring, BadmintonScoring
 import django_tables2 as tables
 from django.core.mail import send_mail
 from django.conf import settings
@@ -168,7 +168,7 @@ def participant_entry(request):
         events = Event.objects.filter(team_event__participants=participant).distinct()
         print(events)
         print(teams)
-        
+        matches = Match.objects.filter(teams__in=teams).distinct()
         print(matches)
         matches = list(set(matches))  # Remove duplicates
         
@@ -388,3 +388,85 @@ def update_status(request, match_id):
         match.save()
         return redirect('match_details', match_id=match.id)
     return render(request, 'portal/update_status.html', {'match': match})
+
+def update_scores(request, match_id):
+    match = Match.objects.get(id=match_id)
+    event = match.event
+    if event.name_of_sports == 'Cricket':
+        form = CricketScoring(request.POST or None, match=match)
+    elif event.name_of_sports == 'Football':
+        form = FootballScoring(request.POST or None, match=match)
+    elif event.name_of_sports == 'Badminton':
+        form = BadmintonScoring(request.POST or None, match=match)
+    else:
+        form = None
+
+    if request.method == 'POST' and form is not None:
+        if form.is_valid():
+            intial_points = 0
+            if event.name_of_sports == 'Cricket':
+                team1_score = form.cleaned_data['team1_score']
+                team2_score = form.cleaned_data['team2_score']
+                team1 = form.cleaned_data['team1']
+                team2 = form.cleaned_data['team2']
+                team1_overs = form.cleaned_data['team1_overs']
+                team1_wickets = form.cleaned_data['team1_wickets']
+                team2_overs = form.cleaned_data['team2_overs']
+                team2_wickets = form.cleaned_data['team2_wickets']
+                team1_verdict = form.cleaned_data['verdict_for_team1']
+                cricket_score=CricketScore.objects.create(
+                    event=event,
+                    match=match,
+                    team1=team1,
+                    team2=team2,
+                    team1_score=team1_score,
+                    team2_score=team2_score,
+                    team1_overs=team1_overs,
+                    team1_wickets=team1_wickets,
+                    team2_overs=team2_overs,
+                    team2_wickets=team2_wickets,
+                    verdict_for_team1=team1_verdict
+                )
+                cricket_score.save()
+            elif event.name_of_sports == 'Football':
+                team1_goals = form.cleaned_data['team1_goals']
+                team2_goals = form.cleaned_data['team2_goals']
+                team1 = form.cleaned_data['team1']
+                team2 = form.cleaned_data['team2']
+                team1_verdict = form.cleaned_data['verdict_for_team1']
+                if team1_verdict == 'Win':
+                    team2_verdict = 'Loss'
+                elif team1_verdict == 'Loss':
+                    team2_verdict = 'Win'
+                else:
+                    team2_verdict = 'Tie'
+                football_score=FootballScore.objects.create(
+                    event=event,
+                    match=match,
+                    team1=team1,
+                    team2=team2,
+                    team1_goals=team1_goals,
+                    team2_goals=team2_goals,
+                    verdict_for_team1=team1_verdict
+                )
+                football_score.save()
+            elif event.name_of_sports == 'Badminton':
+                team1_sets_won = form.cleaned_data['team1_sets_won']
+                team2_sets_won = form.cleaned_data['team2_sets_won']
+                team1 = form.cleaned_data['team1']
+                team2 = form.cleaned_data['team2']
+                team1_verdict = form.cleaned_data['verdict_for_team1']
+                badminton_score=BadmintonScore.objects.create(
+                    event=event,
+                    match=match,
+                    team1=team1,
+                    team2=team2,
+                    team1_sets_won=team1_sets_won,
+                    team2_sets_won=team2_sets_won,
+                    verdict_for_team1=team1_verdict
+                )
+                badminton_score.save()
+            else:
+                return render(request, 'portal/update_scores.html', {'match': match, 'form': form, 'error': 'Invalid event type.'})
+            return redirect('match_details', match_id=match.id)
+    return render(request, 'portal/update_scores.html', {'match': match,'form': form})
