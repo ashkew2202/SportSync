@@ -28,4 +28,5 @@ urlpatterns=[
         path('updateStatus/<int:match_id>/',views.update_status,name='update_status'),
         path('updateScore/<int:match_id>/',views.update_scores,name='update_scores'),
         path('viewScores/', views.view_scores, name='view_scores'),
+        path('feedback/<int:event_id>/',views.participant_feedback,name='feedback'),
 ]

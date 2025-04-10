@@ -39,7 +39,10 @@
                                         <button type="submit" class="btn btn-primary">Update</button>
                                     {% endif %}
                                     </form>
-                                <td>
+                                    <td><form method="GET" action="{% url 'feedback' event_id=team.event.id %}">
+                                        {% csrf_token %}
+                                        <button type="submit" class="btn btn-secondary">Feedback</button>
+                                    </form></td>
                             {% empty %}
                                 <tr>
                                 <td colspan="3" class="text-center text-muted">You have not registered for any teams yet.</td>

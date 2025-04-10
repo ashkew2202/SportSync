@@ -248,7 +248,7 @@ def event_details(request, event_id):
         'feedbacks' : feedbacks,
      }
     return render(request, 'portal/eventDetails.html', context)
-
+@login_required(login_url='account_login')
 def college_members(request, college_id, event_id):
     event = Event.objects.get(id=event_id)
     college = College.objects.get(id=college_id)
@@ -261,7 +261,7 @@ def college_members(request, college_id, event_id):
         'participants': participants,
     }
     return render(request, 'portal/collegeMembers.html', context)
-
+@login_required(login_url='account_login')
 def event_view(request):
     teams = Team.objects.filter(participants__email=request.user.email).distinct() 
 
@@ -269,7 +269,7 @@ def event_view(request):
         'teams': teams,
     }
     return render(request, 'portal/eventView.html', context)
-
+@login_required(login_url='account_login')
 def register_participant(request, event_id):
     event = Event.objects.get(id=event_id)
     participant = Participant.objects.get(email=request.user.email)
@@ -337,7 +337,7 @@ def addTeam(request, match_id):
         form = TeamForm()
 
     return render(request, 'portal/addTeam.html', {'form': form})
-
+@login_required(login_url='account_login')
 def team_details(request, team_id):
     team = Team.objects.get(id=team_id)
     participants = team.participants.all()
@@ -353,7 +353,7 @@ def team_details(request, team_id):
         'participants': participants,
     }
     return render(request, 'portal/teamDetails.html', context)
-
+@login_required(login_url='account_login')
 def addTeamMembers(request, team_id):
     team = Team.objects.get(id=team_id)
     participants_ofSameCollege = Participant.objects.filter(college=team.college).exclude(id__in=team.participants.values_list('id', flat=True))
@@ -377,7 +377,7 @@ def addTeamMembers(request, team_id):
         'team': team,
         'participants_ofSameCollege': participants_ofSameCollege
     })
-    
+
 def update_status(request, match_id):
     match = Match.objects.get(id=match_id)
     if request.method == 'POST':
@@ -468,7 +468,7 @@ def update_scores(request, match_id):
                 return render(request, 'portal/update_scores.html', {'match': match, 'form': form, 'error': 'Invalid event type.'})
             return redirect('match_details', match_id=match.id)
     return render(request, 'portal/update_scores.html', {'match': match,'form': form})
-
+@login_required(login_url='account_login')
 def view_scores(request):
     participant = Participant.objects.get(email=request.user.email)
     teams = Team.objects.filter(participants=participant)
@@ -515,3 +515,14 @@ def view_scores(request):
         'college_scores': college_scores,
     }
     return render(request, 'portal/view_scores.html', context)
+
+def participant_feedback(request, event_id):
+    event = Event.objects.get(id=event_id)
+    if request.method == 'POST':
+        rating = request.POST.get('rating')
+        feedback = request.POST.get('feedback')
+        participant = Participant.objects.get(email=request.user.email)
+        feedback_obj = FeedBack.objects.create(event=event, participant=participant, feedback=feedback, rating=rating)
+        feedback_obj.save()
+        return redirect('events')
+    return render(request, 'portal/feedback.html', {'event': event})
