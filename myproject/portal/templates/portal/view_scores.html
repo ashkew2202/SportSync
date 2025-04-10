@@ -1,0 +1,129 @@
+{% extends "participant_base.html" %}
+{% load custom_filters %}
+{% block content %}
+<div class="container mt-4">
+    <h2 class="mb-4">Match Scores and Details</h2>
+
+    <!-- Participant Matches Table -->
+    <h3>Participant Matches</h3>
+    <div class="table-responsive">
+        <table class="table table-bordered table-striped">
+            <thead class="thead-dark">
+                <tr>
+                    <th>Time</th>
+                    <th>Sport</th>
+                    <th>Location</th>
+                    <th>Score</th>
+                    <th>Result</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for match, score in participant_matches|zip_lists:participant_scores %}
+                <tr>
+                    <td>{{ match.time }}</td>
+                    <td>{{ match.event.name_of_sports }}</td>
+                    <td>{{ match.venue }}</td>
+                    {% if match.event.name_of_sports == "Cricket" %}
+                        <td>{{ score.team1_score }}/{{ score.team1_wickets }}-{{ score.team2_score }}/{{ score.team2_wickets }}</td>
+                        <td>
+                            {% if score.team1_score > score.team2_score %}
+                                Team 1 Wins
+                            {% elif score.team1_score < score.team2_score %}
+                                Team 2 Wins
+                            {% else %}
+                                Draw
+                            {% endif %}
+                        </td>
+                    {% elif match.event.name_of_sports == "Badminton" %}
+                        <td>{{ score.team1_sets_won }}-{{ score.team2_sets_won }}</td>
+                        <td>
+                            {% if score.team1_sets_won > score.team2_sets_won %}
+                                Team 1 Wins
+                            {% elif score.team1_sets_won < score.team2_sets_won %}
+                                Team 2 Wins
+                            {% else %}
+                                Draw
+                            {% endif %}
+                        </td>
+                    {% elif match.event.name_of_sports == "Football" %}
+                        <td>{{ score.team1_goals }}-{{ score.team2_goals }}</td>
+                        <td>
+                            {% if score.team1_goals > score.team2_goals %}
+                                Team 1 Wins
+                            {% elif score.team1_goals < score.team2_goals %}
+                                Team 2 Wins
+                            {% else %}
+                                Draw
+                            {% endif %}
+                        </td>
+                    {% else %}
+                        <td>No scores updated yet</td>
+                    {% endif %}
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+
+    <!-- College Matches Table -->
+    <h3>College Matches</h3>
+    <div class="table-responsive">
+        <table class="table table-bordered table-striped">
+            <thead class="thead-dark">
+                <tr>
+                    <th>Time</th>
+                    <th>Sport</th>
+                    <th>Location</th>
+                    <th>Score</th>
+                    <th>Result</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for match, score in college_matches|zip_lists:college_scores %}
+                <tr>
+                    <td>{{ match.time }}</td>
+                    <td>{{ match.event.name_of_sports }}</td>
+                    <td>{{ match.venue }}</td>
+                    {% if match.event.name_of_sports == "Cricket" %}
+                        <td>{{ score.team1_score }}/{{ score.team1_wickets }}-{{ score.team2_score }}/{{ score.team2_wickets }}</td>
+                        <td>
+                            {% if score.team1_score > score.team2_score %}
+                                Team 1 Wins
+                            {% elif score.team1_score < score.team2_score %}
+                                Team 2 Wins
+                            {% else %}
+                                Draw
+                            {% endif %}
+                        </td>
+                    {% elif match.event.name_of_sports == "Badminton" %}
+                        <td>{{ score.team1_sets_won }}-{{ score.team2_sets_won }}</td>
+                        <td>
+                            {% if score.team1_sets_won > score.team2_sets_won %}
+                                Team 1 Wins
+                            {% elif score.team1_sets_won < score.team2_sets_won %}
+                                Team 2 Wins
+                            {% else %}
+                                Draw
+                            {% endif %}
+                        </td>
+                    {% elif match.event.name_of_sports == "Football" %}
+                        <td>{{ score.team1_goals }}-{{ score.team2_goals }}</td>
+                        <td>
+                            {% if score.team1_goals > score.team2_goals %}
+                                Team 1 Wins
+                            {% elif score.team1_goals < score.team2_goals %}
+                                Team 2 Wins
+                            {% else %}
+                                Draw
+                            {% endif %}
+                        </td>
+                    {% else %}
+                        <td>No scores updated yet</td>
+                    {% endif %}
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+</div>
+
+{% endblock %}

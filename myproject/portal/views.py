@@ -3,7 +3,7 @@ from . import decorators
 from django.contrib.auth.models import User
 from django.contrib.auth import login as auth_login, login
 from .forms import RegistrationForm, OrganizerLoginForm, EventForm
-from .models import Participant, Organizer, Match, Event, Team, BannedParticipants, College, CricketScore, AthleticsScore, FootballScore, BadmintonScore
+from .models import Participant, Organizer, Match, Event, Team, BannedParticipants, College, CricketScore, AthleticsScore, FootballScore, BadmintonScore, FeedBack
 from django.contrib.auth.decorators import login_required, user_passes_test
 from .forms import MatchForm, TeamForm, CricketScoring, FootballScoring, BadmintonScoring
 import django_tables2 as tables
@@ -202,8 +202,16 @@ def add_event(request):
 def event_details(request, event_id):
     event = Event.objects.get(id=event_id)
     matches = Match.objects.filter(event=event)
-    colleges = College.objects.filter(participant__team__event=event).distinct()
+    colleges = list(set(College.objects.filter(participant__team__event=event).distinct()))
     participants = Participant.objects.filter(team__event=event)  # Default value for participants
+    feedbacks = FeedBack.objects.filter(event=event).distinct()
+    for match in matches:
+        if event.name_of_sports == 'Cricket':
+            score = CricketScore.objects.filter(match=match).first()
+        elif event.name_of_sports == 'Football':
+            score = FootballScore.objects.filter(match=match).first()
+        elif event.name_of_sports == 'Badminton':
+            score = BadmintonScore.objects.filter(match=match).first()
 
     if request.method == 'GET':
         filter_by = request.GET.get('filter_by')
@@ -232,16 +240,19 @@ def event_details(request, event_id):
         else:
             colleges = College.objects.filter(participant__team__event=event)
     context = {
+        'score': score,
         'event': event,
         'matches': matches,
         'colleges': colleges,
         'participants': participants,
-    }
+        'feedbacks' : feedbacks,
+     }
     return render(request, 'portal/eventDetails.html', context)
 
-def college_members(request, college_id):
+def college_members(request, college_id, event_id):
+    event = Event.objects.get(id=event_id)
     college = College.objects.get(id=college_id)
-    team = Team.objects.get(college=college, event__organizer=request.user)
+    team = Team.objects.get(college=college, event=event)
     print(team)
     participants = team.participants.all()
     context = {
@@ -263,12 +274,6 @@ def register_participant(request, event_id):
     event = Event.objects.get(id=event_id)
     participant = Participant.objects.get(email=request.user.email)
     team = Team.objects.filter(event=event, college=participant.college, max_size=event.max_size).first()
-    # Ensure the team captain's gender matches the event requirement
-    if event.gender and event.gender != 'Mixed':
-        if (event.gender == 'Men' and participant.gender != 'Male') or (event.gender == 'Women' and participant.gender != 'Female'):
-            return render(request, 'portal/register_participant.html', {
-                'error': f'The team captain must be {event.gender.lower()} for this event.'
-            })
     if not team:
         team = Team.objects.create(
             event=event,
@@ -278,37 +283,30 @@ def register_participant(request, event_id):
         )
         team.addParticipant(participant)
         team.save()
-    else:
-        # Confirm the gender of the team members matches the event requirement
-        if event.gender and event.gender != 'Mixed' and participant.gender != event.gender:
-            if (event.gender == 'Men' and participant.gender != 'Male') or (event.gender == 'Women' and participant.gender != 'Female'):
-                return render(request, 'portal/register_participant.html', {
-                    'error': f'This event is restricted to {event.gender.lower()} participants only.'
-                })
-        # Send an email to the captain of the team
-        if team.captain:
-            subject = "New Participant Request for Your Team"
-            message = f"""
-            Dear {team.captain.name},
+    # Send an email to the captain of the team
+    if team.captain:
+        subject = "New Participant Request for Your Team"
+        message = f"""
+        Dear {team.captain.name},
 
-            A new participant has requested to join your team for the event "{event}".
-            Here are the details of the participant:
+        A new participant has requested to join your team for the event "{event}".
+        Here are the details of the participant:
 
-            Name: {participant.name}
-            Email: {participant.email}
-            Phone: {participant.phone}
-            Gender: {participant.gender}
-            College: {participant.college.name}
+        Name: {participant.name}
+        Email: {participant.email}
+        Phone: {participant.phone}
+        Gender: {participant.gender}
+        College: {participant.college.name}
 
-            Please review the request and take appropriate action.
+        Please review the request and take appropriate action.
 
-            Best regards,
-            SportSync Team
-            """
-            from_email = settings.EMAIL_HOST_USER
-            recipient_list = [team.captain.email]
+        Best regards,
+        SportSync Team
+        """
+        from_email = settings.EMAIL_HOST_USER
+        recipient_list = [team.captain.email]
 
-            send_mail(subject, message, from_email, recipient_list)
+        send_mail(subject, message, from_email, recipient_list)
     return redirect('events')
 
 def ban_participant(request, participant_id, team_id):
@@ -324,7 +322,7 @@ def addTeam(request, match_id):
     if request.method == 'POST':
         match = Match.objects.get(id=match_id)
         event = match.event
-        form = TeamForm(request.POST)
+        form = TeamForm(request.POST,match=match)
         event_form = form.cleaned_data['event']
         print(event_form)
         if event_form != event:
@@ -470,3 +468,50 @@ def update_scores(request, match_id):
                 return render(request, 'portal/update_scores.html', {'match': match, 'form': form, 'error': 'Invalid event type.'})
             return redirect('match_details', match_id=match.id)
     return render(request, 'portal/update_scores.html', {'match': match,'form': form})
+
+def view_scores(request):
+    participant = Participant.objects.get(email=request.user.email)
+    teams = Team.objects.filter(participants=participant)
+    college_teams = Team.objects.filter(college=participant.college)
+
+    participant_matches = Match.objects.filter(teams__in=teams).distinct()
+    college_matches = Match.objects.filter(teams__in=college_teams).distinct()
+
+    participant_scores = []
+    college_scores = []
+    for match in participant_matches:
+        if match.event.name_of_sports == 'Cricket':
+            score = CricketScore.objects.filter(match=match).first()
+        elif match.event.name_of_sports == 'Football':
+            score = FootballScore.objects.filter(match=match).first()
+        elif match.event.name_of_sports == 'Badminton':
+            score = BadmintonScore.objects.filter(match=match).first()
+        else:
+            score = None
+
+        if score:
+            participant_scores.append(score)
+        
+    for match in participant_matches:
+        if match.event.name_of_sports == 'Cricket':
+            score = CricketScore.objects.filter(match=match).first()
+        elif match.event.name_of_sports == 'Football':
+            score = FootballScore.objects.filter(match=match).first()
+        elif match.event.name_of_sports == 'Badminton':
+            score = BadmintonScore.objects.filter(match=match).first()
+        else:
+            score = None
+        print(score)
+        if score:
+            college_scores.append(score)
+    p_range = range(len(participant_matches))
+    c_range = range(len(college_matches))
+    context = {
+        'p_range': p_range,
+        'c_range': c_range,
+        'participant_matches': participant_matches,
+        'college_matches': college_matches,
+        'participant_scores': participant_scores,
+        'college_scores': college_scores,
+    }
+    return render(request, 'portal/view_scores.html', context)

@@ -60,6 +60,7 @@
                             <th>Time</th>
                             <th>Location</th>
                             <th>Status</th>
+                            <th>Scores</th>
                             <th>Actions</th>
                         </tr>
                     </thead>
@@ -70,6 +71,17 @@
                             <td>{{ match.time }}</td>
                             <td>{{ match.venue }}</td>
                             <td>{{ match.status }}</td>
+                            <td>
+                                {% if event.name_of_sports == "Football" %}
+                                    {{ score.team1_goals }} - {{ score.team2_goals }}
+                                {% elif event.name_of_sports == "Cricket" %}
+                                    {{ score.team1_score }}/{{ score.team1_wickets }} - {{ score.team2_score }}/{{ score.team2_wickets }}
+                                {% elif event.name_of_sports == "Badminton" %}
+                                    {{ score.team1_sets_won }} games - {{ score.team2_sets_won }} games
+                                {% else %}
+                                    Scores not updated yet
+                                {% endif %}
+                            </td>
                             <td>
                                 <a href="{% url 'match_details' match.id %}" class="btn btn-info btn-sm">View Match Details</a>
                                 <a href="{% url 'update_scores' match_id=match.id %}" class="btn btn-warning btn-sm">Update Scores</a>
@@ -103,26 +115,49 @@
         </div>
         <table class="table table-bordered">
             <thead>
-                <tr>
-                    <th>Name</th>
-                    <th>Location</th>
-                    <th>Pin Code</th>
-                    <th>Actions</th>
-                </tr>
+            <tr>
+                <th>Name</th>
+                <th>Location</th>
+                <th>Pin Code</th>
+                <th>Actions</th>
+            </tr>
             </thead>
             <tbody>
-                {% for college in colleges %}
-                <tr>
-                    <td>{{ college.name }}</td>
-                    <td>{{ college.address }}</td>
-                    <td>{{ college.pincode }}</td>
-                    <td>
-                        <a href="{% url 'college_details' college_id=college.id %}" class="btn btn-info btn-sm">View Participants</a>
-                    </td>
-                </tr>
-                {% endfor %}
+            {% for college in colleges %}
+            <tr>
+                <td>{{ college.name }}</td>
+                <td>{{ college.address }}</td>
+                <td>{{ college.pincode }}</td>
+                <td>
+                <a href="{% url 'college_details' college_id=college.id event_id=event.id %}" class="btn btn-info btn-sm">View Participants</a>
+                </td>
+            </tr>
+            {% endfor %}
             </tbody>
         </table>
+    </div>
+
+    <div class="mt-5">
+        <h1 class="mb-4">Participant Feedback</h1>
+        <table class="table table-bordered">
+        <thead>
+            <tr>
+            <th>Participant Name</th>
+            <th>Feedback</th>
+            <th>Rating</th>
+            </tr>
+        </thead>
+        <tbody>
+            {% for feedback in feedbacks %}
+            <tr>
+            <td>{{ feedback.participant.name }}</td>
+            <td>{{ feedback.feedback }}</td>
+            <td>{{ feedback.rating }}/5</td>
+            </tr>
+            {% endfor %}
+        </tbody>
+        </table>
+    </div>
     </div>
 
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0-alpha1/dist/js/bootstrap.bundle.min.js"></script>

@@ -285,3 +285,11 @@ class FootballScore(models.Model):
 
     def __str__(self):
         return f"Match: {self.match}, Team: {self.team}, Goals: {self.goals}, Verdict: {self.verdict}"
+    
+class FeedBack(models.Model):
+    participant = models.ForeignKey(Participant, on_delete=models.CASCADE)
+    event = models.ForeignKey(Event, on_delete=models.CASCADE)
+    feedback = models.TextField()
+    rating = models.IntegerField()
+    def __str__(self):
+        return f'The feedback from {self.participant} for {self.event} is {self.feedback} and rating is {self.rating}'
