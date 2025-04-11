@@ -1,5 +1,5 @@
 from django.shortcuts import render, redirect
-from . import decorators
+from .decorators import participant_required, organizer_required
 from django.contrib.auth.models import User
 from django.contrib.auth import login as auth_login, login
 from .forms import RegistrationForm, OrganizerLoginForm, EventForm
@@ -18,10 +18,10 @@ def base(request):
 def home(request):
     return render(request,'portal/home.html')
 
-@decorators.candidate_required
 def candidate_entry(request):
     return render(request, 'portal/candidate.html')
 
+@organizer_required
 @login_required(login_url='organizer_login')
 def organizer_entry(request):
     organizer = request.user
