@@ -44,7 +44,7 @@ SOCIAL_ACCOUNT_PROVIDERS = {
 # SECURITY WARNING: don't run with debug turned on in production!
 DEBUG = os.getenv('DEBUG', 'True')
 
-ALLOWED_HOSTS = []
+ALLOWED_HOSTS = ['localhost','ashkew803.pythonanywhere.com']
 
 
 # Application definition
@@ -157,7 +157,6 @@ STATIC_ROOT = os.path.join(BASE_DIR, 'staticfiles')
 DEFAULT_AUTO_FIELD = 'django.db.models.BigAutoField'
 ACCOUNT_SIGNUP_REDIRECT_URL = '/registration/'
 LOGIN_REDIRECT_URL = '/participant_dashboard/'
-ALLOWED_HOSTS = ['ashkew2202.pythonanywhere.com','localhost']
 SMTP_BACKEND = 'django.core.mail.backends.smtp.EmailBackend'
 EMAIL_HOST = 'smtp.gmail.com'
 EMAIL_PORT = 587

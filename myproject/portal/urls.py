@@ -29,4 +29,6 @@ urlpatterns=[
         path('updateScore/<int:match_id>/',views.update_scores,name='update_scores'),
         path('viewScores/', views.view_scores, name='view_scores'),
         path('feedback/<int:event_id>/',views.participant_feedback,name='feedback'),
+        path('verify_participant/',views.verify_email_prompt, name='verify_participant'),
+        path('kick_participant/<int:participant_id>/<int:team_id>/',views.kick_participant,name='kick_participant'),
 ]

@@ -10,7 +10,16 @@
             </div>
         {% endif %}
         {% csrf_token %}
-        {{ form.as_p }}
+        {% if match.event.name_of_sports == 'Athletics-100m'  %}
+            {{ formset.management_form }}
+            {% for form in formset %}
+            <div class="form-group">
+                {{ form.as_p }}
+            </div>
+            {% endfor %}
+        {% else %}
+            {{ form.as_p }}
+        {% endif %}
         <button type="submit" class="btn btn-primary">Submit</button>
     </form>
 </div>

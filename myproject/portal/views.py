@@ -3,13 +3,14 @@ from . import decorators
 from django.contrib.auth.models import User
 from django.contrib.auth import login as auth_login, login
 from .forms import RegistrationForm, OrganizerLoginForm, EventForm
-from .models import Participant, Organizer, Match, Event, Team, BannedParticipants, College, CricketScore, AthleticsScore, FootballScore, BadmintonScore, FeedBack
+from .models import Participant, Organizer, Match, Event, Team, BannedParticipants, College, CricketScore, SingleScoringForSwimming, FootballScore, BadmintonScore, FeedBack, SingleScoringForAthletics
 from django.contrib.auth.decorators import login_required, user_passes_test
-from .forms import MatchForm, TeamForm, CricketScoring, FootballScoring, BadmintonScoring
+from .forms import MatchForm, TeamForm, CricketScoring, FootballScoring, BadmintonScoring, AthleticsScoreForm, AthleticsScoreFormSet, SingleScoringForAthleticsForm
 import django_tables2 as tables
 from django.core.mail import send_mail
 from django.conf import settings
-
+from allauth.socialaccount.models import SocialAccount
+from django.utils.crypto import get_random_string
 # Create your views here.
 def base(request):
     return render(request,'base.html')
@@ -37,24 +38,64 @@ def login(request):
 def register(request):
     if request.method == 'POST':
         form = RegistrationForm(request.POST)
+        if Participant.objects.filter(email=request.user.email).exists():
+            return redirect('participant_dashboard')
         if form.is_valid():
             user = request.user
             request.user.email = form.cleaned_data.get('email')
-            request.user.save()
-            participant=Participant.objects.create(
-                name=form.cleaned_data.get('name'),
-                email=form.cleaned_data.get('email'),
-                gender=form.cleaned_data.get('gender'),
-                dob=form.cleaned_data.get('dob'),
-                phone=form.cleaned_data.get('phone'),
-                college=form.cleaned_data.get('college')
-            )
-            participant.save()
-            return redirect('participant_dashboard')
+            verification_token = get_random_string(8, allowed_chars='0123456789')
+            user.save()
+            request.session['verification_token'] = verification_token
+            request.session['is_email_verified'] = False
+            subject = "Verify Your Email Address"
+            message = f"""
+            Dear {request.user.username},
+
+            Your OTP for email verification is: {verification_token}
+
+            If you did not request this, please ignore this email.
+
+            Best regards,
+            SportSync Team
+            """
+            from_email = settings.EMAIL_HOST_USER
+            recipient_list = [request.user.email]
+            send_mail(subject, message, from_email, recipient_list)
+            request.session['registration_form_data'] = request.POST
+            return redirect('verify_participant')
+            
     else:
         form = RegistrationForm()
 
     return render(request, 'portal/registration.html', {'form': form})
+@login_required(login_url='account_login')
+def verify_email_prompt(request):
+    if request.method == 'POST':
+        verification_token = request.POST.get('verification_token')
+        try:
+            if verification_token == request.session.get('verification_token'):
+                request.session['is_email_verified'] = True
+                user = request.user
+            else:
+                return render(request, 'portal/verify_email_prompt.html', {'error': 'Invalid verification token'})
+            if request.session.get('is_email_verified'):
+                form = RegistrationForm(request.session.get('registration_form_data'))
+                if form.is_valid():
+                    participant = Participant.objects.create(
+                        name=form.cleaned_data.get('name'),
+                        email=form.cleaned_data.get('email'),
+                        phone=form.cleaned_data.get('phone'),
+                        gender = form.cleaned_data.get('gender'),
+                        dob=form.cleaned_data.get('dob'),
+                        college=form.cleaned_data.get('college'),)
+                    
+                    participant.save()
+                return redirect('participant_dashboard')
+            else:
+                return render(request, 'portal/registration.html', {'error': 'Email verification failed. Please try again.'})
+        except User.DoesNotExist:
+            return render(request, 'portal/verify_email_prompt.html', {'error': 'Invalid verification token'})
+    return render(request, 'portal/verify_email_prompt.html')
 
 def ologin(request):
     if request.method == 'POST':
@@ -96,7 +137,7 @@ def match_details(request, match_id):
     print(match.teams)
     teams = match.teams.all()
     print(match)
-    form = TeamForm()
+    form = TeamForm(request.POST or None, initial={'event': match.event}, user=request.user)
     context = {
         'match': match,
         'teams': teams,
@@ -202,9 +243,13 @@ def add_event(request):
 def event_details(request, event_id):
     event = Event.objects.get(id=event_id)
     matches = Match.objects.filter(event=event)
-    colleges = list(set(College.objects.filter(participant__team__event=event).distinct()))
+    colleges = College.objects.filter(team__event=event).distinct()
     participants = Participant.objects.filter(team__event=event)  # Default value for participants
     feedbacks = FeedBack.objects.filter(event=event).distinct()
+    print(colleges)
+    # Initialize score as None
+    score = None
+
     for match in matches:
         if event.name_of_sports == 'Cricket':
             score = CricketScore.objects.filter(match=match).first()
@@ -212,6 +257,10 @@ def event_details(request, event_id):
             score = FootballScore.objects.filter(match=match).first()
         elif event.name_of_sports == 'Badminton':
             score = BadmintonScore.objects.filter(match=match).first()
+        elif event.name_of_sports in ['Athletics-100m', 'Athletics-200m']:
+            score = SingleScoringForAthletics.objects.filter(match=match, event=event).first()
+        elif event.name_of_sports == 'Swimming':
+            score = SingleScoringForSwimming.objects.filter(match=match, event=event).first()
 
     if request.method == 'GET':
         filter_by = request.GET.get('filter_by')
@@ -223,31 +272,32 @@ def event_details(request, event_id):
         elif filter_by == 'phone':
             participants = Participant.objects.filter(phone=filter_value, team__event=event)
         elif filter_by == 'college':
-            participants = Participant.objects.filter(college=filter_value, team__event=event)
+            participants = Participant.objects.filter(college__name=filter_value, team__event=event)
         elif filter_by == 'gender':
             participants = Participant.objects.filter(gender=filter_value, team__event=event)
         else:
-            participants = Participant.objects.filter(team__event=event)
+            participants = Participant.objects.filter(team__event=event).distinct()
         
         college_filter_by = request.GET.get('college_filter_by')
         college_filter_value = request.GET.get('college_filter_value')
         if college_filter_by == 'name':
-            colleges = College.objects.filter(name=college_filter_value, participant__team__event=event)
+            colleges = College.objects.filter(name=college_filter_value, participant__team__event=event).distinct
         elif college_filter_by == 'address':
-            colleges = College.objects.filter(address=college_filter_value, participant__team__event=event)
+            colleges = College.objects.filter(address=college_filter_value, participant__team__event=event).distinct
         elif college_filter_by == 'pincode':
-            colleges = College.objects.filter(pincode=college_filter_value, participant__team__event=event)
+            colleges = College.objects.filter(pincode=college_filter_value, participant__team__event=event).distinct
         else:
-            colleges = College.objects.filter(participant__team__event=event)
+            colleges = College.objects.filter(participant__team__event=event).distinct()
     context = {
-        'score': score,
+        'score': score,  # Ensure score is always defined
         'event': event,
         'matches': matches,
         'colleges': colleges,
         'participants': participants,
-        'feedbacks' : feedbacks,
-     }
+        'feedbacks': feedbacks,
+    }
     return render(request, 'portal/eventDetails.html', context)
+
 @login_required(login_url='account_login')
 def college_members(request, college_id, event_id):
     event = Event.objects.get(id=event_id)
@@ -319,22 +369,22 @@ def ban_participant(request, participant_id, team_id):
     return render(request, 'portal/ban_participant.html', {'participant': participant})
 
 def addTeam(request, match_id):
+    match = Match.objects.get(id=match_id)
+    event = match.event
     if request.method == 'POST':
-        match = Match.objects.get(id=match_id)
-        event = match.event
-        form = TeamForm(request.POST,match=match)
-        event_form = form.cleaned_data['event']
-        print(event_form)
-        if event_form != event:
-            return redirect(request.path_info)
-        team = form.cleaned_data['team']
-        if team.max_size < event.min_size:
-            return redirect(request.path_info)
-        match.addTeam(team)
-        match.save()
-        return redirect('match_details', match_id=match.id)
+        form = TeamForm(request.POST, event=event, user=request.user)
+        if form.is_valid():
+            event_form = form.cleaned_data['event']
+            if event_form != event:
+                return redirect(request.path_info)
+            team = form.cleaned_data['team']
+            if team.max_size < event.min_size:
+                return redirect(request.path_info)
+            match.addTeam(team)
+            match.save()
+            return redirect('match_details', match_id=match.id)
     else:
-        form = TeamForm()
+        form = TeamForm(event=event, user=request.user)
 
     return render(request, 'portal/addTeam.html', {'form': form})
 @login_required(login_url='account_login')
@@ -396,6 +446,23 @@ def update_scores(request, match_id):
         form = FootballScoring(request.POST or None, match=match)
     elif event.name_of_sports == 'Badminton':
         form = BadmintonScoring(request.POST or None, match=match)
+    elif event.name_of_sports in ['Athletics-100m', 'Athletics-200m']:
+        form = SingleScoringForAthleticsForm(request.POST or None, event=event)
+        formset = AthleticsScoreFormSet(request.POST or None, queryset=SingleScoringForAthletics.objects.filter(match=match))
+
+        if form.is_valid() and formset.is_valid():
+            single_score = form.save(commit=False)
+            single_score.match = match
+            single_score.event = event
+            single_score.save()
+
+            instances = formset.save(commit=False)
+            for instance in instances:
+                instance.match = match
+                instance.event = event
+                instance.save()
+        else:
+            return render(request, 'portal/update_scores.html', {'match': match, 'form': form, 'formset': formset})
     else:
         form = None
 
@@ -464,6 +531,20 @@ def update_scores(request, match_id):
                     verdict_for_team1=team1_verdict
                 )
                 badminton_score.save()
+            elif event.name_of_sports in ['Athletics-100m', 'Athletics-200m']:
+                if formset.is_valid():
+                    instances = formset.save(commit=False)
+                    for instance in instances:
+                        instance.match = match
+                        instance.event = event
+                        instance.save()
+                        single_score = SingleScoringForAthletics.objects.create(
+                            match=match,
+                            event=event,
+                            participant=instance.participant,
+                            score=instance.score
+                        )
+                        single_score.save()
             else:
                 return render(request, 'portal/update_scores.html', {'match': match, 'form': form, 'error': 'Invalid event type.'})
             return redirect('match_details', match_id=match.id)
@@ -506,6 +587,7 @@ def view_scores(request):
             college_scores.append(score)
     p_range = range(len(participant_matches))
     c_range = range(len(college_matches))
+    print(college_matches)
     context = {
         'p_range': p_range,
         'c_range': c_range,
@@ -526,3 +608,11 @@ def participant_feedback(request, event_id):
         feedback_obj.save()
         return redirect('events')
     return render(request, 'portal/feedback.html', {'event': event})
+
+def kick_participant(request, participant_id, team_id):
+    team = Team.objects.get(id=team_id)
+    participant = Participant.objects.get(id=participant_id)
+    if request.method == 'POST':
+        team.removePlayer(participant)
+        team.save()
+        return redirect('events')

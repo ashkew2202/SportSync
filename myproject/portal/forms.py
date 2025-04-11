@@ -1,5 +1,5 @@
 from django import forms
-from .models import Participant, Organizer, Match, Event, Team, College, CricketScore, FootballScore, BadmintonScore, AthleticsScore
+from .models import Participant, Organizer, Match, Event, Team, College, CricketScore, FootballScore, BadmintonScore, AthleticsScore, SingleScoringForAthletics
 
 class RegistrationForm(forms.ModelForm):
     name = forms.CharField(max_length=100)
@@ -100,6 +100,7 @@ class TeamForm(forms.ModelForm):
     )
     def __init__(self, *args, **kwargs):
         user = kwargs.pop('user', None)
+        print(user)
         super().__init__(*args, **kwargs)
         if user and user.is_authenticated:
             self.fields['event'].queryset = Event.objects.filter(organizer=user)
@@ -231,3 +232,44 @@ class BadmintonScoring(forms.ModelForm):
     class Meta:
         model = BadmintonScore
         fields = ['team1', 'team1_points','team1_sets_won', 'team2', 'team2_points','team2_sets_won', 'verdict_for_team1']
+
+from .models import SingleScoringForAthletics
+
+class SingleScoringForAthleticsForm(forms.ModelForm):
+    class Meta:
+        model = SingleScoringForAthletics
+        fields = ['event', 'match']
+
+from django.forms import inlineformset_factory
+from .models import AthleticsScore
+class AthleticsScoreForm(forms.ModelForm):
+    participant = forms.ModelChoiceField(
+        queryset=Participant.objects.none(),
+        widget=forms.Select(attrs={'class': 'form-control'})
+    )
+
+    def __init__(self, *args, **kwargs):
+        event = kwargs.pop('event', None)
+        super().__init__(*args, **kwargs)
+        if event:
+            self.fields['participant'].queryset = Participant.objects.filter(team__event=event)
+
+    class Meta:
+        model = AthleticsScore
+        fields = ['participant', 'verdict', 'time', 'distance', 'position']
+AthleticsScoreFormSet = inlineformset_factory(
+    SingleScoringForAthletics,
+    AthleticsScore,
+    form=AthleticsScoreForm,
+    fields=['participant', 'verdict', 'time', 'distance', 'position'],
+    extra=1, 
+    can_delete=True, 
+    widgets={
+        'participant': forms.Select(attrs={'class': 'form-control'}),
+        'verdict': forms.Select(attrs={'class': 'form-control'}),
+        'time': forms.TimeInput(attrs={'class': 'form-control', 'type': 'time'}),
+        'distance': forms.NumberInput(attrs={'class': 'form-control'}),
+        'position': forms.NumberInput(attrs={'class': 'form-control'}),
+    }
+)
+

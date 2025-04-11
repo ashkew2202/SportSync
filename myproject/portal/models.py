@@ -117,7 +117,7 @@ class Event(models.Model):
     min_size = models.IntegerField()
 
     def __str__(self):
-        return self.name_of_sports
+        return f'{self.name_of_sports}-{self.gender}'
 
     @staticmethod
     def check_one_team_per_college():
@@ -131,7 +131,7 @@ class Team(models.Model):
     captain=models.ForeignKey(Participant, on_delete=models.CASCADE, related_name='captain')
     college=models.ForeignKey(College, on_delete=models.CASCADE)
     participants = models.ManyToManyField(Participant)
-    event = models.OneToOneField(Event, on_delete=models.CASCADE, related_name='team_event', null=True, blank=True)
+    event = models.ForeignKey(Event, on_delete=models.CASCADE, related_name='team_event', null=True, blank=True)
     def addParticipant(self, participant):
         if self.participants.count() < self.max_size:
             self.participants.add(participant)
@@ -205,19 +205,47 @@ class CricketScore(models.Model):
     def __str__(self):
         return f"Match: {self.match}, Team1 Score: {self.team1_score}, Team2 Score: {self.team2_score}"
 
-class AthleticsScore(models.Model):
+class SingleScoringForAthletics(models.Model):
     event = models.ForeignKey(Event, on_delete=models.CASCADE)
+    scores = models.ManyToManyField(Participant, through='portal.AthleticsScore')
     match = models.ForeignKey(Match, on_delete=models.CASCADE)
-    participant = models.ForeignKey(Participant, on_delete=models.CASCADE, related_name='athletics_scores')
+
+    def __str__(self):
+        return f"Event: {self.event}, Match: {self.match}"
+
+class SingleScoringForSwimming(models.Model):
+    event = models.ForeignKey(Event, on_delete=models.CASCADE)
+    scores = models.ManyToManyField(Participant, through='SwimmingScore')
+    match = models.ForeignKey(Match, on_delete=models.CASCADE)
+
+    def __str__(self):
+        return f"Event: {self.event}, Match: {self.match}"
+
+class SwimmingScore(models.Model):
+    scoring = models.ForeignKey(SingleScoringForSwimming, on_delete=models.CASCADE)
+    participant = models.ForeignKey(Participant, on_delete=models.CASCADE)
     verdict_choices = [
         ('Qualified', 'Qualified'),
         ('Disqualified', 'Disqualified'),
         ('Did Not Finish', 'Did Not Finish'),
     ]
     verdict = models.CharField(max_length=20, choices=verdict_choices, null=True, blank=True, default='Did Not Finish')
-    time = models.DurationField(null=True, blank=True)  # Time taken (e.g., for races)
-    distance = models.DecimalField(max_digits=10, decimal_places=2, null=True, blank=True)  # Distance covered (e.g., for jumps or throws)
-    position = models.IntegerField(null=True, blank=True)  # Position in the event (1st, 2nd, etc.)
+    time = models.DurationField(null=True, blank=True)  
+    distance = models.DecimalField(max_digits=10, decimal_places=2, null=True, blank=True)  
+    position = models.IntegerField(null=True, blank=True)
+
+class AthleticsScore(models.Model):
+    scoring = models.ForeignKey(SingleScoringForAthletics, on_delete=models.CASCADE)
+    participant = models.ForeignKey(Participant, on_delete=models.CASCADE)
+    verdict_choices = [
+        ('Qualified', 'Qualified'),
+        ('Disqualified', 'Disqualified'),
+        ('Did Not Finish', 'Did Not Finish'),
+    ]
+    verdict = models.CharField(max_length=20, choices=verdict_choices, null=True, blank=True, default='Did Not Finish')
+    time = models.DurationField(null=True, blank=True)  
+    distance = models.DecimalField(max_digits=10, decimal_places=2, null=True, blank=True)  
+    position = models.IntegerField(null=True, blank=True)
 
     def __str__(self):
         return f"Event: {self.event}, Participant: {self.participant}, Time: {self.time}, Distance: {self.distance}, Position: {self.position}"
@@ -293,3 +321,4 @@ class FeedBack(models.Model):
     rating = models.IntegerField()
     def __str__(self):
         return f'The feedback from {self.participant} for {self.event} is {self.feedback} and rating is {self.rating}'
+

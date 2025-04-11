@@ -21,11 +21,14 @@
                 <td>{{ participant.college }}</td>
                 <td>{{ participant.phone }}</td>
                 <td>
-                    <form method="post" action="{% url 'ban_participant' participant_id=participant.id team_id=team.id %}">
+                    <form method="post" action="{% url 'ban_participant' participant_id=participant.id team_id=team.id %}" style="display: inline;">
                         {% csrf_token %}
                         <button class="btn btn-danger btn-sm" onclick="banParticipant('{{ participant.id }}')">Ban</button>
                     </form>
+                    <form method="post" action="{% url 'kick_participant' participant_id=participant.id team_id=team.id %}" style="display: inline;">
+                        {% csrf_token %}
                         <button class="btn btn-warning btn-sm" onclick="kickParticipant('{{ participant.id }}')">Kick</button>
+                    </form>
                 </td>
             </tr>
             {% endfor %}
