@@ -38,13 +38,9 @@ def login(request):
 def register(request):
     if request.method == 'POST':
         form = RegistrationForm(request.POST)
-        if Participant.objects.filter(email=request.user.email).exists():
-            return redirect('participant_dashboard')
         if form.is_valid():
             user = request.user
-            request.user.email = form.cleaned_data.get('email')
             verification_token = get_random_string(8, allowed_chars='0123456789')
-            user.save()
             request.session['verification_token'] = verification_token
             request.session['is_email_verified'] = False
             subject = "Verify Your Email Address"
@@ -59,7 +55,7 @@ def register(request):
             SportSync Team
             """
             from_email = settings.EMAIL_HOST_USER
-            recipient_list = [request.user.email]
+            recipient_list = [form.cleaned_data.get('email')]
             send_mail(subject, message, from_email, recipient_list)
             request.session['registration_form_data'] = request.POST
             return redirect('verify_participant')
@@ -76,11 +72,16 @@ def verify_email_prompt(request):
             if verification_token == request.session.get('verification_token'):
                 request.session['is_email_verified'] = True
                 user = request.user
+                
             else:
                 return render(request, 'portal/verify_email_prompt.html', {'error': 'Invalid verification token'})
             if request.session.get('is_email_verified'):
                 form = RegistrationForm(request.session.get('registration_form_data'))
                 if form.is_valid():
+                    user.email = form.cleaned_data.get('email')
+                    user.save()
+                    print(user.email)
+                    print(form.cleaned_data.get('email'))
                     participant = Participant.objects.create(
                         name=form.cleaned_data.get('name'),
                         email=form.cleaned_data.get('email'),
