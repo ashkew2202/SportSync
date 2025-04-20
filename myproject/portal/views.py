@@ -1,5 +1,5 @@
 from django.shortcuts import render, redirect
-from .decorators import participant_required, organizer_required
+from . import decorators
 from django.contrib.auth.models import User
 from django.contrib.auth import login as auth_login, login
 from .forms import RegistrationForm, OrganizerLoginForm, EventForm
@@ -9,7 +9,7 @@ from .forms import MatchForm, TeamForm, CricketScoring, FootballScoring, Badmint
 import django_tables2 as tables
 from django.core.mail import send_mail
 from django.conf import settings
-from allauth.socialaccount.models import SocialAccount
+
 from django.utils.crypto import get_random_string
 # Create your views here.
 def base(request):
@@ -21,18 +21,19 @@ def home(request):
 def candidate_entry(request):
     return render(request, 'portal/candidate.html')
 
-@organizer_required
+@decorators.organizer_required
 @login_required(login_url='organizer_login')
 def organizer_entry(request):
     organizer = request.user
     events = Event.objects.filter(organizer=organizer)
     context = {
         'events': events,
-    } 
+    }
     return render(request, 'portal/organizer.html', context)
 
 def login(request):
     return render(request, 'portal/prelogin.html')
+
 
 @login_required(login_url='account_login')
 def register(request):
@@ -59,11 +60,13 @@ def register(request):
             send_mail(subject, message, from_email, recipient_list)
             request.session['registration_form_data'] = request.POST
             return redirect('verify_participant')
-            
+
     else:
         form = RegistrationForm()
 
     return render(request, 'portal/registration.html', {'form': form})
+
+
 @login_required(login_url='account_login')
 def verify_email_prompt(request):
     if request.method == 'POST':
@@ -72,7 +75,7 @@ def verify_email_prompt(request):
             if verification_token == request.session.get('verification_token'):
                 request.session['is_email_verified'] = True
                 user = request.user
-                
+
             else:
                 return render(request, 'portal/verify_email_prompt.html', {'error': 'Invalid verification token'})
             if request.session.get('is_email_verified'):
@@ -89,7 +92,7 @@ def verify_email_prompt(request):
                         gender = form.cleaned_data.get('gender'),
                         dob=form.cleaned_data.get('dob'),
                         college=form.cleaned_data.get('college'),)
-                    
+
                     participant.save()
                 return redirect('participant_dashboard')
             else:
@@ -122,6 +125,7 @@ def ologin(request):
 def prelogin(request):
     return render(request, 'portal/prelogin.html')
 
+@decorators.participant_required
 def profile(request):
     if request.user.is_authenticated:
         try:
@@ -133,6 +137,7 @@ def profile(request):
     else:
         return redirect('account_login')
 
+@decorators.organizer_required
 def match_details(request, match_id):
     match = Match.objects.get(id=match_id)
     print(match.teams)
@@ -146,6 +151,7 @@ def match_details(request, match_id):
     }
     return render(request, 'portal/matchDetails.html', context)
 
+@decorators.organizer_required
 def update_match(request, match_id):
     match = Match.objects.get(id=match_id)
     if request.method == 'POST':
@@ -155,6 +161,7 @@ def update_match(request, match_id):
         return redirect('match_details', match_id=match.id)
     return render(request, 'portal/updateMatch.html', {'match': match})
 
+@decorators.organizer_required
 def delete_match(request, match_id):
     match = Match.objects.get(id=match_id)
     if request.method == 'POST':
@@ -162,6 +169,7 @@ def delete_match(request, match_id):
         return redirect('organizer_dashboard')
     return render(request, 'portal/deleteMatch.html', {'match': match})
 
+@decorators.organizer_required
 def addMatch(request):
     if request.method == 'POST':
         form = MatchForm(request.POST)
@@ -198,6 +206,7 @@ def addMatch(request):
 
     return render(request, 'portal/addMatch.html', {'form': form})
 
+@decorators.participant_required
 @login_required(login_url='account_login')
 def participant_entry(request):
     user = request.user
@@ -213,7 +222,7 @@ def participant_entry(request):
         matches = Match.objects.filter(teams__in=teams).distinct()
         print(matches)
         matches = list(set(matches))  # Remove duplicates
-        
+
         events = Event.objects.filter(
             gender__in=['Mixed', 'Men' if participant.gender == 'M' else 'Women']
         ).distinct()
@@ -227,6 +236,7 @@ def participant_entry(request):
     else:
         return render(request, 'portal/participant.html', {'error': 'Participant details not found'})
 
+@decorators.organizer_required
 def add_event(request):
     if request.method == 'POST':
         form = EventForm(request.POST)
@@ -241,6 +251,7 @@ def add_event(request):
         form = EventForm()
     return render(request, 'portal/add_event.html',{'form':form})
 
+@decorators.organizer_required
 def event_details(request, event_id):
     event = Event.objects.get(id=event_id)
     matches = Match.objects.filter(event=event)
@@ -278,7 +289,7 @@ def event_details(request, event_id):
             participants = Participant.objects.filter(gender=filter_value, team__event=event)
         else:
             participants = Participant.objects.filter(team__event=event).distinct()
-        
+
         college_filter_by = request.GET.get('college_filter_by')
         college_filter_value = request.GET.get('college_filter_value')
         if college_filter_by == 'name':
@@ -299,6 +310,7 @@ def event_details(request, event_id):
     }
     return render(request, 'portal/eventDetails.html', context)
 
+@decorators.organizer_required
 @login_required(login_url='account_login')
 def college_members(request, college_id, event_id):
     event = Event.objects.get(id=event_id)
@@ -312,14 +324,18 @@ def college_members(request, college_id, event_id):
         'participants': participants,
     }
     return render(request, 'portal/collegeMembers.html', context)
+
+@decorators.participant_required
 @login_required(login_url='account_login')
 def event_view(request):
-    teams = Team.objects.filter(participants__email=request.user.email).distinct() 
+    teams = Team.objects.filter(participants__email=request.user.email).distinct()
 
     context = {
         'teams': teams,
     }
     return render(request, 'portal/eventView.html', context)
+
+@decorators.participant_required
 @login_required(login_url='account_login')
 def register_participant(request, event_id):
     event = Event.objects.get(id=event_id)
@@ -360,6 +376,7 @@ def register_participant(request, event_id):
         send_mail(subject, message, from_email, recipient_list)
     return redirect('events')
 
+@decorators.organizer_required
 def ban_participant(request, participant_id, team_id):
     team = Team.objects.get(id=team_id)
     event = team.event
@@ -369,6 +386,7 @@ def ban_participant(request, participant_id, team_id):
         return redirect('events')
     return render(request, 'portal/ban_participant.html', {'participant': participant})
 
+@decorators.organizer_required
 def addTeam(request, match_id):
     match = Match.objects.get(id=match_id)
     event = match.event
@@ -388,6 +406,8 @@ def addTeam(request, match_id):
         form = TeamForm(event=event, user=request.user)
 
     return render(request, 'portal/addTeam.html', {'form': form})
+
+@decorators.participant_required
 @login_required(login_url='account_login')
 def team_details(request, team_id):
     team = Team.objects.get(id=team_id)
@@ -404,6 +424,8 @@ def team_details(request, team_id):
         'participants': participants,
     }
     return render(request, 'portal/teamDetails.html', context)
+
+@decorators.participant_required
 @login_required(login_url='account_login')
 def addTeamMembers(request, team_id):
     team = Team.objects.get(id=team_id)
@@ -429,6 +451,7 @@ def addTeamMembers(request, team_id):
         'participants_ofSameCollege': participants_ofSameCollege
     })
 
+@decorators.organizer_required
 def update_status(request, match_id):
     match = Match.objects.get(id=match_id)
     if request.method == 'POST':
@@ -438,6 +461,7 @@ def update_status(request, match_id):
         return redirect('match_details', match_id=match.id)
     return render(request, 'portal/update_status.html', {'match': match})
 
+@decorators.organizer_required
 def update_scores(request, match_id):
     match = Match.objects.get(id=match_id)
     event = match.event
@@ -550,6 +574,8 @@ def update_scores(request, match_id):
                 return render(request, 'portal/update_scores.html', {'match': match, 'form': form, 'error': 'Invalid event type.'})
             return redirect('match_details', match_id=match.id)
     return render(request, 'portal/update_scores.html', {'match': match,'form': form})
+
+@decorators.participant_required
 @login_required(login_url='account_login')
 def view_scores(request):
     participant = Participant.objects.get(email=request.user.email)
@@ -573,7 +599,7 @@ def view_scores(request):
 
         if score:
             participant_scores.append(score)
-        
+
     for match in participant_matches:
         if match.event.name_of_sports == 'Cricket':
             score = CricketScore.objects.filter(match=match).first()
@@ -599,6 +625,7 @@ def view_scores(request):
     }
     return render(request, 'portal/view_scores.html', context)
 
+@decorators.participant_required
 def participant_feedback(request, event_id):
     event = Event.objects.get(id=event_id)
     if request.method == 'POST':
@@ -610,6 +637,7 @@ def participant_feedback(request, event_id):
         return redirect('events')
     return render(request, 'portal/feedback.html', {'event': event})
 
+@decorators.organizer_required
 def kick_participant(request, participant_id, team_id):
     team = Team.objects.get(id=team_id)
     participant = Participant.objects.get(id=participant_id)

@@ -37,7 +37,6 @@ def organizer_required(function=None, redirect_field_name=REDIRECT_FIELD_NAME, l
         def _wrapped_view(request, *args, **kwargs):
             if not check_organizer(request.user):
                 return redirect('home')
-            request.organizer = Organizer.objects.filter(email=request.user.email).first()
             return view_func(request, *args, **kwargs)
         return _wrapped_view
     if function:
