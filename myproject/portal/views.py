@@ -25,8 +25,12 @@ def candidate_entry(request):
 @login_required(login_url='organizer_login')
 def organizer_entry(request):
     organizer = request.user
+    teams = Team.objects.filter(event__organizer=organizer).distinct()
+    colleges = College.objects.filter(team__event__organizer=organizer).distinct()
     events = Event.objects.filter(organizer=organizer)
     context = {
+        'teams':teams,
+        'colleges': colleges,
         'events': events,
     }
     return render(request, 'portal/organizer.html', context)
@@ -158,7 +162,7 @@ def update_match(request, match_id):
         match.date = request.POST.get('date')
         match.venue = request.POST.get('location')
         match.save()
-        return redirect('match_details', match_id=match.id)
+        return redirect('event_details', event_id=match.event.id)
     return render(request, 'portal/updateMatch.html', {'match': match})
 
 @decorators.organizer_required
@@ -166,7 +170,7 @@ def delete_match(request, match_id):
     match = Match.objects.get(id=match_id)
     if request.method == 'POST':
         match.delete()
-        return redirect('organizer_dashboard')
+        return redirect('event_details', event_id=match.event.id)
     return render(request, 'portal/deleteMatch.html', {'match': match})
 
 @decorators.organizer_required
@@ -261,7 +265,6 @@ def event_details(request, event_id):
     print(colleges)
     # Initialize score as None
     score = None
-
     for match in matches:
         if event.name_of_sports == 'Cricket':
             score = CricketScore.objects.filter(match=match).first()
@@ -278,26 +281,26 @@ def event_details(request, event_id):
         filter_by = request.GET.get('filter_by')
         filter_value = request.GET.get('filter_value')
         if filter_by == 'name':
-            participants = Participant.objects.filter(name=filter_value, team__event=event)
+            participants = Participant.objects.filter(name__icontains=filter_value, team__event=event)
         elif filter_by == 'email':
-            participants = Participant.objects.filter(email=filter_value, team__event=event)
+            participants = Participant.objects.filter(email__icontains=filter_value, team__event=event)
         elif filter_by == 'phone':
-            participants = Participant.objects.filter(phone=filter_value, team__event=event)
+            participants = Participant.objects.filter(phone__icontains=filter_value, team__event=event)
         elif filter_by == 'college':
-            participants = Participant.objects.filter(college__name=filter_value, team__event=event)
+            participants = Participant.objects.filter(college__name__icontains=filter_value, team__event=event)
         elif filter_by == 'gender':
-            participants = Participant.objects.filter(gender=filter_value, team__event=event)
+            participants = Participant.objects.filter(gender__icontains=filter_value.capitalize(), team__event=event)
         else:
             participants = Participant.objects.filter(team__event=event).distinct()
 
         college_filter_by = request.GET.get('college_filter_by')
         college_filter_value = request.GET.get('college_filter_value')
         if college_filter_by == 'name':
-            colleges = College.objects.filter(name=college_filter_value, participant__team__event=event).distinct
+            colleges = College.objects.filter(name__icontains=college_filter_value, participant__team__event=event).distinct
         elif college_filter_by == 'address':
-            colleges = College.objects.filter(address=college_filter_value, participant__team__event=event).distinct
+            colleges = College.objects.filter(address__icontains=college_filter_value, participant__team__event=event).distinct
         elif college_filter_by == 'pincode':
-            colleges = College.objects.filter(pincode=college_filter_value, participant__team__event=event).distinct
+            colleges = College.objects.filter(pincode__icontains=college_filter_value, participant__team__event=event).distinct
         else:
             colleges = College.objects.filter(participant__team__event=event).distinct()
     context = {
@@ -350,6 +353,13 @@ def register_participant(request, event_id):
         )
         team.addParticipant(participant)
         team.save()
+    elif event.name_of_sports == 'Badminton':
+        if team.participants.count() == 1:
+            existing_participant = team.participants.first()
+            if existing_participant.gender == participant.gender:
+                return render(request, 'portal/eventView.html', {
+                    'error': 'For Badminton, the second participant must have a different gender than the captain.'
+                })
     # Send an email to the captain of the team
     if team.captain:
         subject = "New Participant Request for Your Team"
@@ -435,6 +445,15 @@ def addTeamMembers(request, team_id):
         participant_id = request.POST.get('new_member')
         if participant_id:
             participant = Participant.objects.get(id=participant_id)
+            if team.event.name_of_sports == 'Badminton':
+                if team.participants.count() == 1:
+                    existing_participant = team.participants.first()
+                    if existing_participant.gender == participant.gender:
+                        return render(request, 'portal/addTeamMembers.html', {
+                            'team': team,
+                            'participants_ofSameCollege': participants_ofSameCollege,
+                            'error': 'For Badminton, the new member must be of a different gender than the existing participant.'
+                        })
             if team.participants.count() < team.max_size:
                 team.participants.add(participant)
                 team.save()
@@ -458,7 +477,7 @@ def update_status(request, match_id):
         status = request.POST.get('status')
         match.status = status
         match.save()
-        return redirect('match_details', match_id=match.id)
+        return redirect('event_details', event_id=match.event.id)
     return render(request, 'portal/update_status.html', {'match': match})
 
 @decorators.organizer_required
@@ -572,7 +591,7 @@ def update_scores(request, match_id):
                         single_score.save()
             else:
                 return render(request, 'portal/update_scores.html', {'match': match, 'form': form, 'error': 'Invalid event type.'})
-            return redirect('match_details', match_id=match.id)
+            return redirect(event_details, event_id=event.id)
     return render(request, 'portal/update_scores.html', {'match': match,'form': form})
 
 @decorators.participant_required
@@ -631,8 +650,10 @@ def participant_feedback(request, event_id):
     if request.method == 'POST':
         rating = request.POST.get('rating')
         feedback = request.POST.get('feedback')
+        image = request.FILES.get('image')
+        print(image)
         participant = Participant.objects.get(email=request.user.email)
-        feedback_obj = FeedBack.objects.create(event=event, participant=participant, feedback=feedback, rating=rating)
+        feedback_obj = FeedBack.objects.create(event=event, participant=participant, feedback=feedback, rating=rating, image=image)
         feedback_obj.save()
         return redirect('events')
     return render(request, 'portal/feedback.html', {'event': event})
@@ -644,4 +665,4 @@ def kick_participant(request, participant_id, team_id):
     if request.method == 'POST':
         team.removePlayer(participant)
         team.save()
-        return redirect('events')
+        return redirect('organizer_dashboard')

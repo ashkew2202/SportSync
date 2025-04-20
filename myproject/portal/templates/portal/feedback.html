@@ -4,14 +4,18 @@
 <div class="container mt-5">
     <h2 class="mb-4">Event {{event.name_of_sports}} Feedback</h2>
     <p class="text-muted">Organized by: {{ event.organizer.name }}</p>
-    <form method="post" action="{% url 'feedback' event_id=event.id %}">
+    <form method="post" action="{% url 'feedback' event_id=event.id %}" enctype="multipart/form-data">
         {% if user.is_authenticated %}
             {% csrf_token %}
             <div class="form-group">
                 <label for="feedback">Your Feedback</label>
                 <textarea class="form-control" id="feedback" name="feedback" rows="5" placeholder="Type your feedback here..." required></textarea>
+                
                 <label for="rating">Rating (1-10)</label>
                 <input type="number" class="form-control" id="rating" name="rating" min="1" max="10" required>
+                
+                <label for="image">Upload a image (optional)</label>
+                <input type="file" class="form-control-file" id="image" name="image" accept="image/*">
             </div>
             <button type="submit" class="btn btn-primary mt-3">Submit Feedback</button>
         {% else %}

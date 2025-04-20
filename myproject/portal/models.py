@@ -121,7 +121,7 @@ class Event(models.Model):
 
     @staticmethod
     def check_one_team_per_college():
-        teams = Team.objects.values('college').annotate(team_count=Count('id'))
+        teams = Team.objects.values('college').distinct()
         for team in teams:
             if team['team_count'] > 1:
                 return False
@@ -155,7 +155,7 @@ class Team(models.Model):
         return self
 
     def __str__(self):
-        return f"Team for {self.event.name_of_sports} organized by {self.event.organizer.name} ({self.event.gender})"
+        return f"Team for {self.event.name_of_sports} organized by {self.event.organizer.name} ({self.event.gender}), College: {self.college.name}, Captain: {self.captain.name}"
 
 class Match(models.Model):
     date = models.DateField()
@@ -267,7 +267,6 @@ class BadmintonScore(models.Model):
 
     def save(self, *args, **kwargs):
         # Automatically calculate points based on the verdict
-        # Automatically calculate points based on the verdict
         if self.verdict_for_team1 == 'win':
             self.team1_points = 2  # 3 points for a win
             self.team2_points = 0  # No points for a loss
@@ -319,6 +318,7 @@ class FeedBack(models.Model):
     event = models.ForeignKey(Event, on_delete=models.CASCADE)
     feedback = models.TextField()
     rating = models.IntegerField()
+    image = models.ImageField(upload_to='feedback_images/', null=True, blank=True)
     def __str__(self):
         return f'The feedback from {self.participant} for {self.event} is {self.feedback} and rating is {self.rating}'
 

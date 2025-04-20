@@ -1,5 +1,5 @@
 from django.contrib import admin
-from .models import Match, Event, Organizer, Participant, Team, BannedParticipants, College, CricketScore, FootballScore, BadmintonScore, AthleticsScore, SingleScoringForAthletics, SingleScoringForSwimming, SwimmingScore
+from .models import Match, Event, Organizer, Participant, Team, BannedParticipants, College, CricketScore, FootballScore, BadmintonScore, AthleticsScore, SingleScoringForAthletics, SingleScoringForSwimming, SwimmingScore, FeedBack
 
 admin.site.register(Match)
 admin.site.register(Event)
@@ -11,6 +11,7 @@ admin.site.register(College)
 admin.site.register(CricketScore)
 admin.site.register(FootballScore)
 admin.site.register(BadmintonScore)
+admin.site.register(FeedBack)
 
 class SingleScoringForAthleticsInline(admin.TabularInline):
     model = AthleticsScore
