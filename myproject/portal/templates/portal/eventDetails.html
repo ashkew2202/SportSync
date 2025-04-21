@@ -27,7 +27,8 @@
     <ul class="list-unstyled mb-0">
         <li><strong>Total Participants:</strong> {{ participants|length }}</li>
         <li><strong>Total Matches:</strong> {{ matches|length }}</li>
-        <li><strong>Participating Colleges:</strong> {{ colleges|length }}</li>
+        <li><strong>Total Participating Colleges:</strong> {{ colleges|length }}</li>
+        <li><strong>Total Feedbacks:</strong> {{ feedbacks|length }}</li>
     </ul>
 </div>
 <body>
@@ -120,11 +121,12 @@
 
         <div class="mt-4">
             <a href="{% url 'add_match' %}" class="btn btn-primary">Add a Match</a>
-            <form action="#" method="post" enctype="multipart/form-data" class="d-inline-block ms-3">
+            <form action="{% url 'export_to_excel' event_id=event.id %}" method="post" enctype="multipart/form-data" class="d-inline-block ms-3">
             {% csrf_token %}
             <label for="excelFile" class="form-label me-2">Upload Excel:</label>
             <input type="file" name="excel_file" id="excelFile" class="form-control d-inline-block" style="width: auto;">
             <button type="submit" class="btn btn-success">Upload</button>
+            <p class="mt-2 text-muted">Upload an Excel file with columns in the following order: Team IDs (e.g., 12), Date, Time, Venue.</p>
             </form>
         </div>
     </div>
@@ -151,6 +153,7 @@
                 <th>Location</th>
                 <th>Pin Code</th>
                 <th>Actions</th>
+                <th>Events the college is participating in</th>
             </tr>
             </thead>
             <tbody>
@@ -158,10 +161,13 @@
             <tr>
                 <td>{{ college.name }}</td>
                 <td>{{ college.address }}</td>
-                <td>{{ college.pincode }}</td>
-                <td>
+                <td>{{ college.pincode }}</td><td>
                 <a href="{% url 'college_details' college_id=college.id event_id=event.id %}" class="btn btn-info btn-sm">View Participants</a>
                 </td>
+                <td>
+                    <a href="{% url 'college_events' college_id=college.id %}" class="btn btn-primary btn-sm">View Events</a>
+                </td>
+                
             </tr>
             {% endfor %}
             </tbody>

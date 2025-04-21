@@ -1,0 +1,35 @@
+{% extends "organizer_base.html" %}
+
+{% block content %}
+<link href="https://stackpath.bootstrapcdn.com/bootstrap/4.5.2/css/bootstrap.min.css" rel="stylesheet" integrity="sha384-LtrjvnR4/Jqs6E6cICmWfKkzN6VV0z8a4+OGpamoFVy38MVBnE+IbbVYUew+OrCXa" crossorigin="anonymous">
+
+<div class="container mt-4">
+    <h1 class="text-center">College Events</h1>
+    <div class="table-responsive mt-4">
+        <table class="table table-striped table-bordered">
+            <thead class="thead-dark">
+                <tr>
+                    <th>#</th>
+                    <th>Event Name</th>
+                    <th>Organizer</th>
+                    <th>Gender</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for team in teams %}
+                <tr>
+                    <td>{{ forloop.counter }}</td>
+                    <td>{{ team.event.name_of_sports }}</td>
+                    <td>{{ team.event.organizer.name }}</td>
+                    <td>{{ team.event.gender }}</td>
+                </tr>
+                {% empty %}
+                <tr>
+                    <td colspan="5" class="text-center">No events found</td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+</div>
+{% endblock %}

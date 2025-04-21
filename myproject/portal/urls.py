@@ -31,4 +31,7 @@ urlpatterns=[
         path('feedback/<int:event_id>/',views.participant_feedback,name='feedback'),
         path('verify_participant/',views.verify_email_prompt, name='verify_participant'),
         path('kick_participant/<int:participant_id>/<int:team_id>/',views.kick_participant,name='kick_participant'),
+        path('oleaderboard/<int:event_id>',views.oleaderboard,name='oleaderboard'),
+        path('export_to_excel/<int:event_id>/',views.add_match_thru_excel,name='export_to_excel'),
+        path('college_events/<int:college_id>/',views.college_events,name='college_events'),
 ]

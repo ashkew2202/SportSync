@@ -8,7 +8,9 @@ from django.contrib.auth.decorators import login_required, user_passes_test
 from .forms import MatchForm, TeamForm, CricketScoring, FootballScoring, BadmintonScoring, AthleticsScoreForm, AthleticsScoreFormSet, SingleScoringForAthleticsForm
 import django_tables2 as tables
 from django.core.mail import send_mail
+import pandas as pd
 from django.conf import settings
+from django.contrib import messages
 
 from django.utils.crypto import get_random_string
 # Create your views here.
@@ -25,11 +27,22 @@ def candidate_entry(request):
 @login_required(login_url='organizer_login')
 def organizer_entry(request):
     organizer = request.user
-    teams = Team.objects.filter(event__organizer=organizer).distinct()
     colleges = College.objects.filter(team__event__organizer=organizer).distinct()
     events = Event.objects.filter(organizer=organizer)
+    filter_by = request.GET.get('team_filter_by')
+    filter_value = request.GET.get('team_filter_value')
+    if filter_by == 'event':
+        teams = Team.objects.filter(event__name_of_sports__icontains=filter_value)
+    elif filter_by == 'captain':
+        teams = Team.objects.filter(captain__name__icontains=filter_value, event__organizer=organizer)
+    elif filter_by == 'college':
+        teams = Team.objects.filter(college__name__icontains=filter_value, event__organizer=organizer)
+    elif filter_by == 'gender':
+        teams = Team.objects.filter(event__gender__icontains=filter_value, event__organizer=organizer)
+    else:
+        teams = Team.objects.filter(event__organizer=organizer).distinct()
     context = {
-        'teams':teams,
+        'teams': teams,
         'colleges': colleges,
         'events': events,
     }
@@ -516,6 +529,7 @@ def update_scores(request, match_id):
             if event.name_of_sports == 'Cricket':
                 team1_score = form.cleaned_data['team1_score']
                 team2_score = form.cleaned_data['team2_score']
+                
                 team1 = form.cleaned_data['team1']
                 team2 = form.cleaned_data['team2']
                 team1_overs = form.cleaned_data['team1_overs']
@@ -523,19 +537,19 @@ def update_scores(request, match_id):
                 team2_overs = form.cleaned_data['team2_overs']
                 team2_wickets = form.cleaned_data['team2_wickets']
                 team1_verdict = form.cleaned_data['verdict_for_team1']
-                cricket_score=CricketScore.objects.create(
+                cricket_score, created = CricketScore.objects.get_or_create(
                     event=event,
                     match=match,
                     team1=team1,
                     team2=team2,
-                    team1_score=team1_score,
-                    team2_score=team2_score,
-                    team1_overs=team1_overs,
-                    team1_wickets=team1_wickets,
-                    team2_overs=team2_overs,
-                    team2_wickets=team2_wickets,
-                    verdict_for_team1=team1_verdict
                 )
+                cricket_score.team1_score = team1_score
+                cricket_score.team2_score = team2_score
+                cricket_score.team1_overs = team1_overs
+                cricket_score.team1_wickets = team1_wickets
+                cricket_score.team2_overs = team2_overs
+                cricket_score.team2_wickets = team2_wickets
+                cricket_score.verdict_for_team1 = team1_verdict
                 cricket_score.save()
             elif event.name_of_sports == 'Football':
                 team1_goals = form.cleaned_data['team1_goals']
@@ -549,15 +563,41 @@ def update_scores(request, match_id):
                     team2_verdict = 'Win'
                 else:
                     team2_verdict = 'Tie'
-                football_score=FootballScore.objects.create(
+                football_score, created = FootballScore.objects.get_or_create(
                     event=event,
                     match=match,
                     team1=team1,
                     team2=team2,
-                    team1_goals=team1_goals,
-                    team2_goals=team2_goals,
-                    verdict_for_team1=team1_verdict
                 )
+                football_score.team1_goals = team1_goals
+                football_score.team2_goals = team2_goals
+                football_score.verdict_for_team1 = team1_verdict
+                football_score.save()
+            elif event.name_of_sports == 'Badminton':
+                badminton_score, created = BadmintonScore.objects.get_or_create(
+                    event=event,
+                    match=match,
+                    team1=team1,
+                    team2=team2,
+                )
+                badminton_score.team1_sets_won = team1_sets_won
+                badminton_score.team2_sets_won = team2_sets_won
+                badminton_score.verdict_for_team1 = team1_verdict
+                badminton_score.save()
+            elif event.name_of_sports in ['Athletics-100m', 'Athletics-200m']:
+                if formset.is_valid():
+                    instances = formset.save(commit=False)
+                    for instance in instances:
+                        instance.match = match
+                        instance.event = event
+                        instance.save()
+                        single_score, created = SingleScoringForAthletics.objects.get_or_create(
+                            match=match,
+                            event=event,
+                            participant=instance.participant,
+                        )
+                        single_score.score = instance.score
+                        single_score.save()
                 football_score.save()
             elif event.name_of_sports == 'Badminton':
                 team1_sets_won = form.cleaned_data['team1_sets_won']
@@ -589,6 +629,8 @@ def update_scores(request, match_id):
                             score=instance.score
                         )
                         single_score.save()
+                match.status = 'Completed'
+                match.save()
             else:
                 return render(request, 'portal/update_scores.html', {'match': match, 'form': form, 'error': 'Invalid event type.'})
             return redirect(event_details, event_id=event.id)
@@ -666,3 +708,74 @@ def kick_participant(request, participant_id, team_id):
         team.removePlayer(participant)
         team.save()
         return redirect('organizer_dashboard')
+
+@decorators.organizer_required
+def oleaderboard(request,event_id):
+    event = Event.objects.get(id=event_id)
+    matches = Match.objects.filter(event=event)
+    print(matches)
+    team_points = {}
+    for match in matches:
+        if event.name_of_sports == 'Cricket':
+            score = CricketScore.objects.filter(match=match).first()
+            if score:
+                team_points[score.team1] = team_points.get(score.team1, 0) + score.team1_points
+                team_points[score.team2] = team_points.get(score.team2, 0) + score.team2_points
+        elif event.name_of_sports == 'Football':
+            score = FootballScore.objects.filter(match=match).first()
+            if score:
+                team_points[score.team1] = team_points.get(score.team1, 0) + score.team1_points
+                team_points[score.team2] = team_points.get(score.team2, 0) + score.team2_points
+        elif event.name_of_sports == 'Badminton':
+            score = BadmintonScore.objects.filter(match=match).first()
+            print(score)
+            if score:
+                team_points[score.team1] = team_points.get(score.team1, 0) + score.team1_points
+                team_points[score.team2] = team_points.get(score.team2, 0) + score.team2_points
+                print(team_points)
+        elif event.name_of_sports in ['Athletics-100m', 'Athletics-200m']:
+            scores = SingleScoringForAthletics.objects.filter(match=match, event=event)
+            for single_score in scores:
+                team = single_score.participant.team_set.filter(event=event).first()
+                if team:
+                    team_points[team] = team_points.get(team, 0) + single_score.score
+
+    if not team_points:
+        messages.error(request, 'No matches have been played yet.')
+        return redirect('organizer_dashboard')
+    team_points = dict(sorted(team_points.items(), key=lambda item: item[1], reverse=True))
+    print(team_points)
+    context = {
+        'event': event,
+        'matches': matches,
+        'team_points': team_points,
+    }
+    return render(request, 'portal/oleaderboard.html', context)
+
+def add_match_thru_excel(request,event_id):
+    if request.method == 'POST':
+        file = request.FILES['excelFile']
+        data = pd.read_excel(file)
+        for index, row in data.iterrows():
+            event = Event.objects.get(id=event_id)
+            teams = Team.objects.filter(id__in=row['team_ids'].split(','))
+            match, created = Match.objects.get_or_create(
+                date=row['date'],
+                time=row['time'],
+                venue=row['venue'],
+                event=event,
+                organizer=request.user,
+            )
+            if not created:
+                messages.error(request, f"Match on {row['date']} at {row['time']} already exists.")
+                continue
+            match.teams.set(teams)
+            match.save()
+        return redirect('event_details', event_id=event_id)
+    else:
+        return redirect('event_details', event_id=event_id)
+    
+def college_events(request, college_id):
+    college = College.objects.get(id=college_id)
+    teams = Team.objects.filter(college=college)
+    return render(request, 'portal/college_events.html', {'college': college, 'teams':teams})
