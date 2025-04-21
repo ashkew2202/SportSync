@@ -645,7 +645,6 @@ def view_scores(request):
 
     participant_matches = Match.objects.filter(teams__in=teams).distinct()
     college_matches = Match.objects.filter(teams__in=college_teams).distinct()
-
     participant_scores = []
     college_scores = []
     for match in participant_matches:
@@ -661,7 +660,7 @@ def view_scores(request):
         if score:
             participant_scores.append(score)
 
-    for match in participant_matches:
+    for match in college_matches:
         if match.event.name_of_sports == 'Cricket':
             score = CricketScore.objects.filter(match=match).first()
         elif match.event.name_of_sports == 'Football':
