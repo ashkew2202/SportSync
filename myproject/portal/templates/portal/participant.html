@@ -4,11 +4,45 @@
 <div class="container mt-4">
     <h1 class="text-center">Participant Dashboard</h1>
     <div class="card mt-4">
-        <div class="card-header bg-primary text-white">
-            <h4>Matches</h4>
-        </div>
-        <div class="card-body">
+        
+        <div class="card mt-4">
+            <div class="card-header bg-warning text-dark">
+            <h4>Upcoming Matches of your College</h4>
+            </div>
+            <div class="card-body">
             <table class="table table-striped">
+                <thead>
+                <tr>
+                    <th>Date</th>
+                    <th>Time</th>
+                    <th>Location</th>
+                    <th>Status</th>
+                </tr>
+                </thead>
+                <tbody>
+                {% for college_match in college_matches %}
+                <tr>
+                    <td>{{ college_match.date }}</td>
+                    <td>{{ college_match.time }}</td>
+                    <td>{{ college_match.venue }}</td>
+                    <td>{{ college_match.status }}</td>
+                </tr>
+                {% empty %}
+                <tr>
+                    <td colspan="5" class="text-center">No upcoming college matches found.</td>
+                </tr>
+                {% endfor %}
+                </tbody>
+            </table>
+                </div>
+            </div>
+        </div>
+        <div class="card mt-4">
+            <div class="card-header bg-primary text-white">
+                <h4>Matches</h4>
+            </div>
+            <div class="card-body">
+                <table class="table table-striped">
                 <thead>
                     <tr>
                         <th>Date</th>

@@ -9,15 +9,23 @@ from .forms import MatchForm, TeamForm, CricketScoring, FootballScoring, Badmint
 import django_tables2 as tables
 from django.core.mail import send_mail
 import pandas as pd
+
 from django.conf import settings
 from django.contrib import messages
 
 from django.utils.crypto import get_random_string
+from django.http import HttpResponse
+from datetime import timedelta, datetime
 # Create your views here.
 def base(request):
     return render(request,'base.html')
 
 def home(request):
+    if request.user.is_authenticated:
+        if hasattr(request.user, 'participant'):
+            return redirect('participant_dashboard')
+        elif hasattr(request.user, 'organizer'):
+            return redirect('organizer_dashboard')
     return render(request,'portal/home.html')
 
 def candidate_entry(request):
@@ -238,12 +246,18 @@ def participant_entry(request):
         print(teams)
         matches = Match.objects.filter(teams__in=teams).distinct()
         print(matches)
-        matches = list(set(matches))  # Remove duplicates
-
+        college_matches = Match.objects.filter(teams__college=participant.college).distinct()
+        college_matches = college_matches.exclude(teams__participants=participant)
+        matches.order_by('date','time')
+        college_matches.order_by('date','time') # to maintain order of the matches
+        # remove matches that are more than 2 days old
+        matches = [match for match in matches if match.date >= datetime.now().date() - timedelta(days=2)]
+        college_matches = [match for match in college_matches if match.date >= datetime.now().date() - timedelta(days=2)]
         events = Event.objects.filter(
             gender__in=['Mixed', 'Men' if participant.gender == 'M' else 'Women']
         ).distinct()
         context = {
+            'college_matches': college_matches,
             'participant': participant,
             'teams': teams,
             'matches': matches,
@@ -316,6 +330,7 @@ def event_details(request, event_id):
             colleges = College.objects.filter(pincode__icontains=college_filter_value, participant__team__event=event).distinct
         else:
             colleges = College.objects.filter(participant__team__event=event).distinct()
+    matches = matches.order_by('date', 'time') # Order matches by date and time so that the latest match is at the top
     context = {
         'score': score,  # Ensure score is always defined
         'event': event,
@@ -356,6 +371,14 @@ def event_view(request):
 def register_participant(request, event_id):
     event = Event.objects.get(id=event_id)
     participant = Participant.objects.get(email=request.user.email)
+    # Checking if the participant is in the banned participants list for the event
+    if BannedParticipants.objects.filter(team__event=event, participant=participant).exists():
+        return render(request, 'portal/eventView.html', {
+            'error': 'You are banned from participating in this event.'
+        })
+    # Checking if the participant is already the captain of the team
+    if Team.objects.filter(event=event, captain=participant).exists():
+        return redirect('events')
     team = Team.objects.filter(event=event, college=participant.college, max_size=event.max_size).first()
     if not team:
         team = Team.objects.create(
@@ -778,3 +801,26 @@ def college_events(request, college_id):
     college = College.objects.get(id=college_id)
     teams = Team.objects.filter(college=college)
     return render(request, 'portal/college_events.html', {'college': college, 'teams':teams})
+
+def download_list_of_all_participants(request):
+    events = Event.objects.filter(organizer=request.user)
+    participants = Participant.objects.filter(team__event__in=events).distinct()
+    data = []
+    for participant in participants:
+        pevents = Event.objects.filter(team_event__participants=participant).distinct()
+        event_names = ', '.join(event.name_of_sports for event in pevents)
+        data.append({
+            'Name': participant.name,
+            'Email': participant.email,
+            'Phone': participant.phone,
+            'Gender': participant.gender,
+            'Date of Birth': participant.dob,
+            'College': participant.college.name if participant.college else '',
+            'Events': event_names,
+        })
+
+    df = pd.DataFrame(data)
+    response = HttpResponse(content_type='application/vnd.openxmlformats-officedocument.spreadsheetml.sheet')
+    response['Content-Disposition'] = 'attachment; filename="participants_list.xlsx"'
+    df.to_excel(response, index=False)
+    return response

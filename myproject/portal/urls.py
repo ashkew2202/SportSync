@@ -34,4 +34,5 @@ urlpatterns=[
         path('oleaderboard/<int:event_id>',views.oleaderboard,name='oleaderboard'),
         path('export_to_excel/<int:event_id>/',views.add_match_thru_excel,name='export_to_excel'),
         path('college_events/<int:college_id>/',views.college_events,name='college_events'),
+        path('download_participants/',views.download_list_of_all_participants,name='download_participants'),
 ]

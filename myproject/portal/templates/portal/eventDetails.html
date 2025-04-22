@@ -1,5 +1,5 @@
 {% extends "organizer_base.html" %}
-
+{% load custom_filters %}
 {% block content %}
 <!DOCTYPE html>
 <html lang="en">
@@ -29,6 +29,8 @@
         <li><strong>Total Matches:</strong> {{ matches|length }}</li>
         <li><strong>Total Participating Colleges:</strong> {{ colleges|length }}</li>
         <li><strong>Total Feedbacks:</strong> {{ feedbacks|length }}</li>
+        <li><strong>Total Male Participants:</strong> {{ participants|male_filter|length }}</li>
+        <li><strong>Total Female Participants:</strong> {{ participants|female_filter|length }}</li>
     </ul>
 </div>
 <body>
@@ -183,6 +185,7 @@
                         <tr>
                             <th>Participant Name</th>
                             <th>Feedback</th>
+                            <th>Image(If Any)</th>
                             <th>Rating</th>
                         </tr>
                     </thead>

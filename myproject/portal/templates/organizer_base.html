@@ -16,10 +16,16 @@
             <div class="collapse navbar-collapse" id="navbarNav">
                 <ul class="navbar-nav">
                     <li class="nav-item">
-                        <a class="nav-link" href="{% url 'add_event' %}">Add an Event</a>
+                            <a class="nav-link" href="{% url 'add_event' %}">Add an Event</a>
                     </li>
                     <li class="nav-item">
-                        <a class="nav-link" href="{% url 'account_logout' %}">Sign Out</a>
+                            <a class="nav-link" href="{% url 'download_participants' %}">Download Participants List</a>
+                    </li>
+                    <li class="nav-item">
+                        <form action="{% url 'account_logout' %}" method="post" class="d-inline-block me-3">
+                            {% csrf_token %}
+                            <button type="submit" class="btn btn-outline-danger nav-link">Sign Out</button>
+                        </form>
                     </li>
                 </ul>
             </div>
