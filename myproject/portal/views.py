@@ -824,3 +824,42 @@ def download_list_of_all_participants(request):
     response['Content-Disposition'] = 'attachment; filename="participants_list.xlsx"'
     df.to_excel(response, index=False)
     return response
+
+def pleaderboards(request,event_id):
+    event = Event.objects.get(id=event_id)
+    matches = Match.objects.filter(event=event)
+    print(matches)
+    team_points = {}
+    for match in matches:
+        if event.name_of_sports == 'Cricket':
+            score = CricketScore.objects.filter(match=match).first()
+            if score:
+                team_points[score.team1] = team_points.get(score.team1, 0) + score.team1_points
+                team_points[score.team2] = team_points.get(score.team2, 0) + score.team2_points
+        elif event.name_of_sports == 'Football':
+            score = FootballScore.objects.filter(match=match).first()
+            if score:
+                team_points[score.team1] = team_points.get(score.team1, 0) + score.team1_points
+                team_points[score.team2] = team_points.get(score.team2, 0) + score.team2_points
+        elif event.name_of_sports == 'Badminton':
+            score = BadmintonScore.objects.filter(match=match).first()
+            print(score)
+            if score:
+                team_points[score.team1] = team_points.get(score.team1, 0) + score.team1_points
+                team_points[score.team2] = team_points.get(score.team2, 0) + score.team2_points
+                print(team_points)
+        elif event.name_of_sports in ['Athletics-100m', 'Athletics-200m']:
+            scores = SingleScoringForAthletics.objects.filter(match=match, event=event)
+            for single_score in scores:
+                team = single_score.participant.team_set.filter(event=event).first()
+                if team:
+                    team_points[team] = team_points.get(team, 0) + single_score.score
+    if not team_points:
+        return redirect('participant_dashboard')
+    team_points = {k: v for k, v in sorted(team_points.items(), key=lambda item: item[1], reverse=True)}
+    context = {
+        'event': event,
+        'matches': matches,
+        'team_points': team_points,
+    }
+    return render(request, 'portal/pleaderboard.html', context)
