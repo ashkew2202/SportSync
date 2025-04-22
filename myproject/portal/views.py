@@ -808,13 +808,13 @@ def download_list_of_all_participants(request):
     data = []
     for participant in participants:
         pevents = Event.objects.filter(team_event__participants=participant).distinct()
-        event_names = ', '.join(event.name_of_sports for event in pevents)
+        event_names = ', '.join(f'{event.name_of_sports}-{event.gender} organized by {event.organizer}' for event in pevents)
+        print(event_names)
         data.append({
             'Name': participant.name,
             'Email': participant.email,
             'Phone': participant.phone,
             'Gender': participant.gender,
-            'Date of Birth': participant.dob,
             'College': participant.college.name if participant.college else '',
             'Events': event_names,
         })
@@ -825,6 +825,7 @@ def download_list_of_all_participants(request):
     df.to_excel(response, index=False)
     return response
 
+@decorators.participant_required
 def pleaderboards(request,event_id):
     event = Event.objects.get(id=event_id)
     matches = Match.objects.filter(event=event)
